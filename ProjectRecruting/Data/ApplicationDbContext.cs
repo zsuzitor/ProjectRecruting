@@ -12,7 +12,15 @@ namespace ProjectRecruting.Data
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
 
-        //public DbSet<Article> Articles { get; set; }
+        public DbSet<Company> Companys { get; set; }
+        public DbSet<Competence> Competences { get; set; }
+        public DbSet<Project> Projects { get; set; }
+        public DbSet<Town> Towns { get; set; }
+        public DbSet<CompanyUser> CompanyUsers { get; set; }
+        public DbSet<CompetenceProject> CompetenceProjects { get; set; }
+        public DbSet<ProjectTown> ProjectTowns { get; set; }
+        public DbSet<ProjectUser> ProjectUser { get; set; }
+
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)

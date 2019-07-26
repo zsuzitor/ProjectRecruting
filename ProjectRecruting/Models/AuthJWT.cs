@@ -37,7 +37,8 @@ namespace ProjectRecruting.Models
             {
                 var claims = new List<Claim>
                 {
-                    new Claim(type:ClaimsIdentity.DefaultNameClaimType,value:user.UserName)//,
+                    new Claim(type:ClaimsIdentity.DefaultNameClaimType,value:user.Id)//,
+                     //new Claim(type:ClaimTypes.Name,value:user.UserName)//,
                     //new Claim(type:ClaimsIdentity.DefaultRoleClaimType, value:user.Role)
                 };
                 ClaimsIdentity claimsIdentity =

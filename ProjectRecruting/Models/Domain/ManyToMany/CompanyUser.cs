@@ -16,5 +16,15 @@ namespace ProjectRecruting.Models.Domain.ManyToMany
         public int CompanyId { get; set; }
         public Company Company { get; set; }
 
+        public CompanyUser()
+        {
+
+        }
+
+        public CompanyUser(string userId,int companyId)
+        {
+
+        }
+
     }
 }
