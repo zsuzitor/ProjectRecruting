@@ -12,6 +12,7 @@ namespace ProjectRecruting.Controllers
     {
         public IActionResult Index()
         {
+            
             return View();
         }
 
