@@ -19,7 +19,7 @@ namespace ProjectRecruting.Models.Domain.ManyToMany
 
         public ProjectUser()
         {
-
+            Status = StatusInProject.InProccessing;
         }
     }
 }

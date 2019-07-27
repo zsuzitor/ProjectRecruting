@@ -6,9 +6,11 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectRecruting.Data;
+using ProjectRecruting.Models;
 using ProjectRecruting.Models.Domain;
 
 namespace ProjectRecruting.Controllers
@@ -18,9 +20,11 @@ namespace ProjectRecruting.Controllers
     public class CompanyApiController : ControllerBase
     {
        readonly ApplicationDbContext _db = null;
-        public CompanyApiController(ApplicationDbContext db)
+        readonly UserManager<ApplicationUser> _userManager = null;
+        public CompanyApiController(ApplicationDbContext db,UserManager<ApplicationUser> userManager)
         {
             _db = db;
+            _userManager = userManager;
         }
 
         [Authorize]
@@ -98,7 +102,7 @@ namespace ProjectRecruting.Controllers
 
 
         [Authorize]
-        public async Task<Project> CreateProject(Project project, IFormFileCollection uploads)
+        public async Task<Project> CreateProject(Project project, IFormFileCollection uploads,string[]competences)
         {
             var claimsIdentity = this.User.Identity as ClaimsIdentity;
             var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
@@ -113,30 +117,123 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return null;
             }
-            //var company=await _db.Companys.FirstOrDefaultAsync(x1=>x1.Id==project.CompanyId);
-            //if(company==null)
-            //{
-            //    Response.StatusCode = 404;
-            //    return null;
-            //}
-            var admins=await _db.CompanyUsers.FirstOrDefaultAsync(x1=>x1.UserId==userId&&x1.CompanyId==project.CompanyId);
-            if (admins == null)
+            if (!await ApplicationUser.CheckAccessEditCompany(_db, project.CompanyId, userId))
             {
                 Response.StatusCode = 404;
                 return null;
             }
-
+            
             Project newProject = new Project(project.Name, project.Description, project.Payment, project.CompanyId);
-            newProject.SetImages(uploads);
             _db.Projects.Add(newProject);
             await _db.SaveChangesAsync();
+            await newProject.AddImagesToDb(_db,uploads);
+            await newProject.AddCompetences(_db,competences);
+
+
             return newProject;
 
 
         }
 
+        [Authorize]
+        public async Task<bool> ChangeProject(Project project, IFormFileCollection uploads,int[] deleteImages, int[] competenceIds)
+        {
+            var claimsIdentity = this.User.Identity as ClaimsIdentity;
+            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+
+            if (!ModelState.IsValid)
+            {
+                Response.StatusCode = 404;
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                Response.StatusCode = 404;
+                return false;
+            }
+            var oldProj=await ApplicationUser.CheckAccessEditProject(_db,project.Id,userId);
+            if (oldProj == null)
+            {
+                Response.StatusCode = 404;
+                return false;
+            }
+            oldProj.ChangeData(project.Name,project.Description,project.Payment);
+            await _db.SaveChangesAsync();
+
+            await oldProj.AddImagesToDb(_db,uploads);
+            await Project.DeleteImagesFromDb(_db, oldProj.Id, deleteImages);
+            await oldProj.DeleteCompetences(_db, competenceIds);
+
+            return true;
+
+        }
 
 
+        [Authorize]
+        public async Task<bool> CloseProject(int projectId)
+        {
+            var claimsIdentity = this.User.Identity as ClaimsIdentity;
+            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+
+            var proj = await ApplicationUser.CheckAccessEditProject(_db, projectId, userId);
+            if (proj == null)
+            {
+                Response.StatusCode = 404;
+                return false;
+            }
+            await proj.SetStatus(_db, StatusProject.Closed);
+            return true;
+        }
+
+
+        [Authorize]
+        public async Task<bool> CompliteProject(int projectId)
+        {
+            var claimsIdentity = this.User.Identity as ClaimsIdentity;
+            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+
+            var proj = await ApplicationUser.CheckAccessEditProject(_db, projectId, userId);
+            if (proj == null)
+            {
+                Response.StatusCode = 404;
+                return false;
+            }
+            await proj.SetStatus(_db, StatusProject.Complited);
+            return true;
+        }
+
+
+        [Authorize]
+        public async Task<bool> ApproveStudent(int projectId,string studentId)
+        {
+            var claimsIdentity = this.User.Identity as ClaimsIdentity;
+            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+
+            var proj = await ApplicationUser.CheckAccessEditProject(_db, projectId, userId);
+            if (proj == null)
+            {
+                Response.StatusCode = 404;
+                return false;
+            }
+            
+            return await proj.ChangeStatusUser(_db, StatusInProject.Approved, studentId);
+        }
+
+        [Authorize]
+        public async Task<bool> CancelStudent(int projectId,string studentId)
+        {
+            var claimsIdentity = this.User.Identity as ClaimsIdentity;
+            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+
+            var proj = await ApplicationUser.CheckAccessEditProject(_db, projectId, userId);
+            if (proj == null)
+            {
+                Response.StatusCode = 404;
+                return false;
+            }
+
+            return await proj.ChangeStatusUser(_db, StatusInProject.Canceled, studentId);
+        }
 
     }
 }

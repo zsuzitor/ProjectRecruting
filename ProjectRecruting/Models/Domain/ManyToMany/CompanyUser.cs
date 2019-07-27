@@ -23,7 +23,8 @@ namespace ProjectRecruting.Models.Domain.ManyToMany
 
         public CompanyUser(string userId,int companyId)
         {
-
+            UserId = userId;
+            CompanyId = companyId;
         }
 
     }

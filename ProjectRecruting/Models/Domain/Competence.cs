@@ -18,5 +18,10 @@ namespace ProjectRecruting.Models.Domain
         {
 
         }
+
+        public Competence(string name):this()
+        {
+            Name = name;
+        }
     }
 }

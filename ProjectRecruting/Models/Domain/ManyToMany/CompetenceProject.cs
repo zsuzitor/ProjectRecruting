@@ -20,5 +20,11 @@ namespace ProjectRecruting.Models.Domain.ManyToMany
         {
 
         }
+
+        public CompetenceProject(int competenceId,int projectId):this()
+        {
+            CompetenceId= competenceId;
+            ProjectId = projectId;
+        }
     }
 }

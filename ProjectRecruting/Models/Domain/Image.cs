@@ -25,6 +25,7 @@ namespace ProjectRecruting.Models.Domain
         public static List<byte[]> GetBytes(IFormFileCollection images)
         {
             List<byte[]> res = new List<byte[]>();
+            if(images!=null)
             foreach (var i in images)
             {
                 //byte[] newImage = null;
