@@ -28,6 +28,7 @@ namespace ProjectRecruting.Controllers
         }
 
         [Authorize]
+        [HttpPost]
         public async Task<Company> CreateCompany(Company company, IFormFile uploadedFile)
         {
            
@@ -63,6 +64,7 @@ namespace ProjectRecruting.Controllers
 
 
         [Authorize]
+        [HttpPost]
         public async Task<Company> ChangeCompany(Company company, IFormFile uploadedFile)
         {
             var claimsIdentity = this.User.Identity as ClaimsIdentity;
@@ -102,6 +104,7 @@ namespace ProjectRecruting.Controllers
 
 
         [Authorize]
+        [HttpPost]
         public async Task<Project> CreateProject(Project project, IFormFileCollection uploads,string[]competences)
         {
             var claimsIdentity = this.User.Identity as ClaimsIdentity;
@@ -136,6 +139,7 @@ namespace ProjectRecruting.Controllers
         }
 
         [Authorize]
+        [HttpPost]
         public async Task<bool> ChangeProject(Project project, IFormFileCollection uploads,int[] deleteImages, int[] competenceIds)
         {
             var claimsIdentity = this.User.Identity as ClaimsIdentity;
@@ -170,6 +174,7 @@ namespace ProjectRecruting.Controllers
 
 
         [Authorize]
+        [HttpPost]
         public async Task<bool> CloseProject(int projectId)
         {
             var claimsIdentity = this.User.Identity as ClaimsIdentity;
@@ -187,6 +192,7 @@ namespace ProjectRecruting.Controllers
 
 
         [Authorize]
+        [HttpPost]
         public async Task<bool> CompliteProject(int projectId)
         {
             var claimsIdentity = this.User.Identity as ClaimsIdentity;
@@ -204,6 +210,7 @@ namespace ProjectRecruting.Controllers
 
 
         [Authorize]
+        [HttpPost]
         public async Task<bool> ApproveStudent(int projectId,string studentId)
         {
             var claimsIdentity = this.User.Identity as ClaimsIdentity;
@@ -220,6 +227,7 @@ namespace ProjectRecruting.Controllers
         }
 
         [Authorize]
+        [HttpPost]
         public async Task<bool> CancelStudent(int projectId,string studentId)
         {
             var claimsIdentity = this.User.Identity as ClaimsIdentity;
@@ -233,6 +241,29 @@ namespace ProjectRecruting.Controllers
             }
 
             return await proj.ChangeStatusUser(_db, StatusInProject.Canceled, studentId);
+        }
+
+
+        [Authorize]
+        public async Task<List<UserShort>> GetStudents(int projectId, string studentId, StatusInProject status)
+        {
+           
+            if (status != StatusInProject.Approved && status != StatusInProject.Canceled && status != StatusInProject.InProccessing)
+                return null;
+
+            var claimsIdentity = this.User.Identity as ClaimsIdentity;
+            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+            
+            var proj = await ApplicationUser.CheckAccessEditProject(_db, projectId, userId);
+
+            if (proj == null)
+            {
+                Response.StatusCode = 404;
+                return null;
+            }
+
+            var ids= await proj.GetStudents(_db, StatusInProject.Approved);
+            return await ApplicationUser.GetShortsData(_db,ids);
         }
 
     }

@@ -21,5 +21,17 @@ namespace ProjectRecruting.Models.Domain.ManyToMany
         {
             Status = StatusInProject.InProccessing;
         }
+
+        public ProjectUser(string userId,int projectId):this()
+        {
+            UserId = userId;
+            ProjectId = projectId;
+
+        }
+
+        public ProjectUser(string userId, int projectId, StatusInProject status) : this(userId,projectId)
+        {
+            Status = status;
+        }
     }
 }

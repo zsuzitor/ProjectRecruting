@@ -26,19 +26,19 @@ namespace ProjectRecruting.Models.Domain
         }
 
 
-        public async Task LoadProjectUsers(ApplicationDbContext db )
+        public async Task LoadProjectUsers(ApplicationDbContext db)
         {
-            if(!db.Entry(this).Collection(x1 => x1.ProjectUsers).IsLoaded)
-            await db.Entry(this).Collection(x1 => x1.ProjectUsers).LoadAsync();
+            if (!db.Entry(this).Collection(x1 => x1.ProjectUsers).IsLoaded)
+                await db.Entry(this).Collection(x1 => x1.ProjectUsers).LoadAsync();
         }
 
         //проверка на то может ли пользователь редактировать компанию
-        public async Task<bool> CheckAccessEditCompany(ApplicationDbContext db,int companyId)
+        public async Task<bool> CheckAccessEditCompany(ApplicationDbContext db, int companyId)
         {
-            return await ApplicationUser.CheckAccessEditCompany(db,companyId, this.Id);
+            return await ApplicationUser.CheckAccessEditCompany(db, companyId, this.Id);
         }
         //проверка на то может ли пользователь редактировать компанию
-        public async static Task<bool> CheckAccessEditCompany(ApplicationDbContext db, int companyId,string userId)
+        public async static Task<bool> CheckAccessEditCompany(ApplicationDbContext db, int companyId, string userId)
         {
             //var res = await db.Entry(this).Collection(x1 => x1.CompanyUsers).Query().FirstOrDefaultAsync(x1 => x1.CompanyId == companyId);
             //return res == null ? false : true;
@@ -54,11 +54,17 @@ namespace ProjectRecruting.Models.Domain
         }
         public async static Task<Project> CheckAccessEditProject(ApplicationDbContext db, int projectId, string userId)
         {
-            var project=await db.Projects.FirstOrDefaultAsync(x1=>x1.Id== projectId);
-            
+            var project = await db.Projects.FirstOrDefaultAsync(x1 => x1.Id == projectId);
+
             var companyUsers = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.CompanyId == project.CompanyId && x1.UserId == userId);
             return companyUsers == null ? null : project;
 
+        }
+
+
+        public async static Task<List<UserShort>> GetShortsData(ApplicationDbContext db, List<string> userIds)
+        {
+            return await db.Users.Where(x1 => userIds.Contains(x1.Id)).Select(x1 => new UserShort(x1.Email, x1.Id)).ToListAsync();
         }
 
     }

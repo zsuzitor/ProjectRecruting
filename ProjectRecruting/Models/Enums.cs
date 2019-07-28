@@ -10,7 +10,8 @@ namespace ProjectRecruting.Models
     }
 
     //статус людей подписанных на проект
-    public enum StatusInProject { InProccessing, Approved, Canceled }
+    //Not-не имеет отношения к проекту
+    public enum StatusInProject {Not, InProccessing, Approved, Canceled,CanceledByStudent }
 
     //статус проекта
     public enum StatusProject {NotStarted, InProccessing, Closed, Complited }

@@ -1,0 +1,23 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace ProjectRecruting.Models
+{
+    public class CompetenceShort
+    {
+        public string Name { get; set; }
+        public int Id { get; set; }
+
+        public CompetenceShort()
+        {
+
+        }
+        public CompetenceShort(string name,int id):this()
+        {
+            Name = name;
+            Id = id;
+        }
+    }
+}
