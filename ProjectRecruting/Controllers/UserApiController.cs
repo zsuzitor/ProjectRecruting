@@ -65,10 +65,13 @@ namespace ProjectRecruting.Controllers
             //     GroupBy(x1=>x1).OrderBy(x1=>x1.Count()).Select(x1=>x1.Key).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
             //var actualListIds = await _db.ProjectUsers.Where(x1 => projids.Contains(x1.ProjectId)).//Select(x1 => x1.ProjectId).
             //    GroupBy(x1 => x1.ProjectId).OrderBy(x1 => x1.Count()).Select(x1 => x1.Key).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
-            var actualListIds =await Project.GetActualInTown(_db, townDb.Id);
+            //var actualListIds =await Project.GetActualInTown(_db, townDb.Id);
+            //var actualListIds = await Project.GetActualEntityInTown(_db, townDb.Id);
+            return await Project.GetActualShortEntityInTown(_db, townDb.Id);
+
 
             //#TODO сломает всю сортировку
-            return await Project.GetShortsData(_db, actualListIds);
+            //return await Project.GetShortsData(_db, actualListIds);
 
         }
 

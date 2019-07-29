@@ -31,6 +31,33 @@ namespace ProjectRecruting.Models.Domain
             return await db.CompetenceProjects.Where(x1 => competenceIds.Contains(x1.CompetenceId)).//Select(x1 => x1.ProjectId).
                GroupBy(x1 => x1.CompetenceId).OrderBy(x1 => x1.Count()).Select(x1 => x1.Key).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
         }
+        public async static Task<List<Competence>> SortByActualEntity(ApplicationDbContext db, List<int> competenceIds)
+        {
+            return await db.CompetenceProjects.Where(x1 => competenceIds.Contains(x1.CompetenceId)).//Select(x1 => x1.ProjectId).
+               GroupBy(x1 => x1.CompetenceId).Join(db.Competences, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { group = x1, entity = x2 }).
+               OrderBy(x1 => x1.group.Count()).Select(x1 => x1.entity).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
+        }
+
+        //составляем запрос
+        public static IQueryable<Competence> GetActualQueryEntityInTown(ApplicationDbContext db, int townId)
+        {
+            return db.CompetenceProjects.Join(db.ProjectTowns, x1 => x1.ProjectId, x2 => x2.ProjectId, (x1, x2) => new { competenceId = x1.CompetenceId, townId = x2.TownId }).
+               Where(x1=>x1.townId==townId).
+                GroupBy(x1 => x1.competenceId)
+               .Join(db.Competences, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { group = x1, entity = x2 }).
+               OrderBy(x1 => x1.group.Count()).Select(x1 => x1.entity);
+        }
+        //получаем полные данные
+        public async static Task<List<Competence>> GetActualEntityInTown(ApplicationDbContext db, int townId)
+        {
+            return await Competence.GetActualQueryEntityInTown(db, townId).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
+        }
+        //получаем сокращенные данные
+        public async static Task<List<CompetenceShort>> GetActualShortEntityInTown(ApplicationDbContext db, int townId)
+        {
+            return await Competence.GetActualQueryEntityInTown(db, townId).Select(x1 => new CompetenceShort(x1.Name, x1.Id)).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
+        }
+
         public async static Task<List<int>> SortByActual(ApplicationDbContext db)
         {
             return await db.CompetenceProjects.GroupBy(x1 => x1.CompetenceId).OrderBy(x1 => x1.Count()).Select(x1 => x1.Key).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
@@ -40,6 +67,10 @@ namespace ProjectRecruting.Models.Domain
         {
             return await db.CompetenceProjects.GroupBy(x1=>x1.CompetenceId).OrderBy(x1=> x1.Count()).Select(x1=>x1.Key).ToListAsync();
         }
+
+
+
+
         public async static Task<List<CompetenceShort>> GetShortsData(ApplicationDbContext db, List<int> competenceIds)
         {
             return await db.Competences.Where(x1 => competenceIds.Contains(x1.Id)).Select(x1 => new CompetenceShort(x1.Name, x1.Id)).ToListAsync();

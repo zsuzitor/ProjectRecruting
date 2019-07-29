@@ -202,11 +202,39 @@ namespace ProjectRecruting.Models.Domain
             return await db.ProjectTowns.Where(x1 => x1.TownId == townId).Select(x1 => x1.ProjectId).Distinct().ToListAsync();
         }
 
+        //сортирует список id по актуальности
         public async static Task<List<int>> SortByActual(ApplicationDbContext db, List<int> projectIds)
         {
             return await db.ProjectUsers.Where(x1 => projectIds.Contains(x1.ProjectId)).//Select(x1 => x1.ProjectId).
                GroupBy(x1 => x1.ProjectId).OrderBy(x1 => x1.Count()).Select(x1 => x1.Key).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
         }
+        public async static Task<List<Project>> SortByActualEntity(ApplicationDbContext db, List<int> projectIds)
+        {
+            return await db.ProjectUsers.Where(x1 => projectIds.Contains(x1.ProjectId)).//Select(x1 => x1.ProjectId).
+               GroupBy(x1 => x1.ProjectId).Join(db.Projects,x1=>x1.Key,x2=>x2.Id,(x1,x2)=>new {group=x1,entity=x2 }).
+               OrderBy(x1 => x1.group.Count()).Select(x1 => x1.entity).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
+        }
+
+        //составляем запрос
+        public  static IQueryable<Project> GetActualQueryEntityInTown(ApplicationDbContext db, int townId)
+        {
+            return  db.ProjectUsers.//Select(x1 => x1.ProjectId).
+               GroupBy(x1 => x1.ProjectId)
+               .Join(db.ProjectTowns, x1 => x1.Key, x2 => x2.ProjectId, (x1, x2) => new { group = x1, town = x2 }).Where(x1 => x1.town.TownId == townId).
+               Join(db.Projects, x1 => x1.group.Key, x2 => x2.Id, (x1, x2) => new { group = x1.group, entity = x2 }).
+               OrderBy(x1 => x1.group.Count()).Select(x1 => x1.entity);
+        }
+        //получаем полные данные
+        public async static Task<List<Project>> GetActualEntityInTown(ApplicationDbContext db, int townId)
+        {
+            return await Project.GetActualQueryEntityInTown(db,townId).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
+        }
+        //получаем сокращенные данные
+        public async static Task<List<ProjectShort>> GetActualShortEntityInTown(ApplicationDbContext db, int townId)
+        {
+            return await Project.GetActualQueryEntityInTown(db, townId).Select(x1=>new ProjectShort(x1.Name,x1.Id)).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
+        }
+
         public async static Task<List<int>> SortByActual(ApplicationDbContext db)
         {
             return await db.ProjectUsers.GroupBy(x1 => x1.ProjectId).OrderBy(x1 => x1.Count()).Select(x1 => x1.Key).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
@@ -219,7 +247,6 @@ namespace ProjectRecruting.Models.Domain
 
         public async static Task<List<int>> GetActualInTown(ApplicationDbContext db, int townId)
         {
-            
             return await Project.SortByActual(db, await Project.GetByTown(db, townId));
         }
 
