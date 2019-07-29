@@ -105,9 +105,9 @@ namespace ProjectRecruting
 
             app.UseMvc(routes =>
             {
-                //routes.MapRoute(
-                //    name: "defaultApi",
-                //    template: "api/v1/{controller=Home}/{action=Index}/{id?}");
+                routes.MapRoute(
+                    name: "defaultApi",
+                    template: "api/{controller=Home}/{action=Index}/{id?}");
 
                 routes.MapRoute(
                     name: "default",
