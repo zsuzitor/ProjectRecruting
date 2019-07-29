@@ -13,18 +13,34 @@ namespace ProjectRecruting.Models
     public class AuthJWT
     {
         public const string ISSUER = "MyAuthServer"; // издатель токена
-        public const string AUDIENCE = "http://localhost:51884/"; // потребитель токена
+        public const string AUDIENCE = "https://localhost:44356/"; // потребитель токена
         const string KEY = "mysupersecret_secretkey!123";   // ключ для шифрации
-        public const int LIFETIME = 1; // время жизни токена - 1 минута
+        public const int LIFETIME = 10; // время жизни токена - 1 минута
         public static SymmetricSecurityKey GetSymmetricSecurityKey()
         {
             return new SymmetricSecurityKey(Encoding.ASCII.GetBytes(KEY));
         }
-
+        //private List<UserShort> people = new List<UserShort>
+        //{
+        //    new UserShort {Name="admin@gmail.com", IdUser="12345", Password = "admin" },
+        //    new UserShort {Name="admin@gmail.com", IdUser="12345", Password = "admin" },
+        //};
 
         public async static Task<ClaimsIdentity> GetIdentity(string username, string password, UserManager<ApplicationUser> userManager)
         {
-            
+            //var claims = new List<Claim>
+            //    {
+            //        new Claim(type:ClaimsIdentity.DefaultNameClaimType,value:"admin@gmail.com"),//,
+            //         //new Claim(type:ClaimTypes.Name,value:user.UserName)//,
+            //        new Claim(type:ClaimsIdentity.DefaultRoleClaimType, value:"testRole")
+            //    };
+            //ClaimsIdentity claimsIdentity =
+            //new ClaimsIdentity(claims, "Token", ClaimsIdentity.DefaultNameClaimType,
+            //    ClaimsIdentity.DefaultRoleClaimType);
+            //return claimsIdentity;
+
+
+
             var user = await userManager.FindByNameAsync(username);
             if (user == null)
                 return null;
@@ -33,22 +49,21 @@ namespace ProjectRecruting.Models
             if (!passwordOK)
                 return null;
 
-            if (user!= null)
-            {
-                var claims = new List<Claim>
+
+            var claims = new List<Claim>
                 {
-                    new Claim(type:ClaimsIdentity.DefaultNameClaimType,value:user.Id)//,
+                    new Claim(type:ClaimsIdentity.DefaultNameClaimType,value:user.Email),//,
                      //new Claim(type:ClaimTypes.Name,value:user.UserName)//,
-                    //new Claim(type:ClaimsIdentity.DefaultRoleClaimType, value:user.Role)
+                    new Claim(type:ClaimsIdentity.DefaultRoleClaimType, value:"testRole")
                 };
-                ClaimsIdentity claimsIdentity =
-                new ClaimsIdentity(claims, "Token", ClaimsIdentity.DefaultNameClaimType,
-                    ClaimsIdentity.DefaultRoleClaimType);
-                return claimsIdentity;
-            }
+            ClaimsIdentity claimsIdentity =
+            new ClaimsIdentity(claims, "Token", ClaimsIdentity.DefaultNameClaimType,
+                ClaimsIdentity.DefaultRoleClaimType);
+            return claimsIdentity;
+
 
             // если пользователя не найдено
-            return null;
+            //return null;
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -25,6 +26,7 @@ namespace ProjectRecruting.Controllers
             _userManager = userManager;
         }
 
+        [AllowAnonymous]
         [HttpPost("Login")]
         public async Task Login([FromForm]string username, [FromForm]string password)
         {
@@ -49,7 +51,7 @@ namespace ProjectRecruting.Controllers
                     expires: now.Add(TimeSpan.FromMinutes(AuthJWT.LIFETIME)),
                     signingCredentials: new SigningCredentials(AuthJWT.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
             var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
-
+            
             var response = new
             {
                 access_token = encodedJwt,
@@ -61,7 +63,7 @@ namespace ProjectRecruting.Controllers
             await Response.WriteAsync(JsonConvert.SerializeObject(response, new JsonSerializerSettings { Formatting = Formatting.Indented }));
         }
 
-
+        [AllowAnonymous]
         [HttpPost("Register")]
         public async Task Register([FromForm]RegisterModel model)//, string confirmPassword
         {

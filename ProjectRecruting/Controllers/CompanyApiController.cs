@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Linq;
 using System.Security.Claims;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Primitives;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models;
 using ProjectRecruting.Models.Domain;
@@ -27,11 +29,16 @@ namespace ProjectRecruting.Controllers
             _userManager = userManager;
         }
 
-        [Authorize]
-        [HttpPost]
-        public async Task<Company> CreateCompany(Company company, IFormFile uploadedFile)
+        //[Authorize]
+        [HttpPost("CreateCompany")]
+        public async Task<Company> CreateCompany([FromForm]Company company, [FromForm]IFormFile uploadedFile)
         {
-           
+            //var headers = Request.Headers;
+            StringValues authorizationToken ;
+            HttpContext.Request.Headers.TryGetValue("Authorization", out authorizationToken);
+            var wer=new JwtSecurityTokenHandler().ReadJwtToken(authorizationToken);
+
+
             var claimsIdentity = this.User.Identity as ClaimsIdentity;
             var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
 
