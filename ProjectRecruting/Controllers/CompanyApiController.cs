@@ -23,9 +23,9 @@ namespace ProjectRecruting.Controllers
     [ApiController]
     public class CompanyApiController : ControllerBase
     {
-       readonly ApplicationDbContext _db = null;
+        readonly ApplicationDbContext _db = null;
         readonly UserManager<ApplicationUser> _userManager = null;
-        public CompanyApiController(ApplicationDbContext db,UserManager<ApplicationUser> userManager)
+        public CompanyApiController(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
         {
             _db = db;
             _userManager = userManager;
@@ -36,24 +36,25 @@ namespace ProjectRecruting.Controllers
         public async Task<Company> CreateCompany([FromForm]Company company, [FromForm]IFormFile uploadedFile)
         {
             //var headers = Request.Headers;
-            StringValues authorizationToken ;
-            HttpContext.Request.Headers.TryGetValue("Authorization", out authorizationToken);
-            var wer=new JwtSecurityTokenHandler().ReadJwtToken(authorizationToken);
+            //StringValues authorizationToken ;
+            HttpContext.Request.Headers.TryGetValue("Authorization", out StringValues authorizationToken);
+            //var wer=new JwtSecurityTokenHandler().ReadJwtToken(authorizationToken);
 
-            //-----
-            //string secret = "this is a string used for encrypt and decrypt token";
-            var key = Encoding.ASCII.GetBytes(AuthJWT.KEY);
-            var handler = new JwtSecurityTokenHandler();
-            var validations = new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidateIssuer = false,
-                ValidateAudience = false
-            };
-            var claims = handler.ValidateToken(authorizationToken, validations, out var tokenSecure);
+            ////-----
+            ////string secret = "this is a string used for encrypt and decrypt token";
+            //var key = Encoding.ASCII.GetBytes(AuthJWT.KEY);
+            //var handler = new JwtSecurityTokenHandler();
+            //var validations = new TokenValidationParameters
+            //{
+            //    ValidateIssuerSigningKey = true,
+            //    IssuerSigningKey = new SymmetricSecurityKey(key),
+            //    ValidateIssuer = false,
+            //    ValidateAudience = false
+            //};
+            //var claims = handler.ValidateToken(authorizationToken, validations, out var tokenSecure);
             //--
 
+            var claims = AuthJWT.DecodeToken(authorizationToken, out SecurityToken token);
 
 
             var claimsIdentity = this.User.Identity as ClaimsIdentity;
@@ -72,16 +73,16 @@ namespace ProjectRecruting.Controllers
 
             Company newCompany = new Company(company.Name, company.Description, company.Number, company.Email);
             if (uploadedFile != null)
-            
+
                 using (var binaryReader = new BinaryReader(uploadedFile.OpenReadStream()))
-            {
-                newCompany.Image = binaryReader.ReadBytes((int)uploadedFile.Length);
-            }
+                {
+                    newCompany.Image = binaryReader.ReadBytes((int)uploadedFile.Length);
+                }
 
             _db.Companys.Add(newCompany);
             await _db.SaveChangesAsync();
 
-            _db.CompanyUsers.Add(new Models.Domain.ManyToMany.CompanyUser(userId,newCompany.Id));
+            _db.CompanyUsers.Add(new Models.Domain.ManyToMany.CompanyUser(userId, newCompany.Id));
             await _db.SaveChangesAsync();
             return newCompany;
         }
@@ -108,19 +109,19 @@ namespace ProjectRecruting.Controllers
                 return null;
             }
 
-            var oldCompany=await _db.Companys.FirstOrDefaultAsync(x1=>x1.Id==company.Id);
-            if(oldCompany==null)
+            var oldCompany = await _db.Companys.FirstOrDefaultAsync(x1 => x1.Id == company.Id);
+            if (oldCompany == null)
             {
                 Response.StatusCode = 404;
                 return null;
             }
             byte[] newImage = null;
             if (uploadedFile != null)
-            
+
                 using (var binaryReader = new BinaryReader(uploadedFile.OpenReadStream()))
-            {
+                {
                     newImage = binaryReader.ReadBytes((int)uploadedFile.Length);
-            }
+                }
             oldCompany.ChangeData(company.Name, company.Description, company.Number, company.Email, company.Image);
             await _db.SaveChangesAsync();
             return oldCompany;
@@ -129,7 +130,7 @@ namespace ProjectRecruting.Controllers
 
         [Authorize]
         [HttpPost]
-        public async Task<Project> CreateProject(Project project, IFormFileCollection uploads,string[]competences)
+        public async Task<Project> CreateProject(Project project, IFormFileCollection uploads, string[] competences)
         {
             var claimsIdentity = this.User.Identity as ClaimsIdentity;
             var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
@@ -149,12 +150,12 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return null;
             }
-            
+
             Project newProject = new Project(project.Name, project.Description, project.Payment, project.CompanyId);
             _db.Projects.Add(newProject);
             await _db.SaveChangesAsync();
-            await newProject.AddImagesToDb(_db,uploads);
-            await newProject.AddCompetences(_db,competences);
+            await newProject.AddImagesToDb(_db, uploads);
+            await newProject.AddCompetences(_db, competences);
 
 
             return newProject;
@@ -164,7 +165,7 @@ namespace ProjectRecruting.Controllers
 
         [Authorize]
         [HttpPost]
-        public async Task<bool> ChangeProject(Project project, IFormFileCollection uploads,int[] deleteImages, int[] competenceIds)
+        public async Task<bool> ChangeProject(Project project, IFormFileCollection uploads, int[] deleteImages, int[] competenceIds)
         {
             var claimsIdentity = this.User.Identity as ClaimsIdentity;
             var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
@@ -179,16 +180,16 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return false;
             }
-            var oldProj=await ApplicationUser.CheckAccessEditProject(_db,project.Id,userId);
+            var oldProj = await ApplicationUser.CheckAccessEditProject(_db, project.Id, userId);
             if (oldProj == null)
             {
                 Response.StatusCode = 404;
                 return false;
             }
-            oldProj.ChangeData(project.Name,project.Description,project.Payment);
+            oldProj.ChangeData(project.Name, project.Description, project.Payment);
             await _db.SaveChangesAsync();
 
-            await oldProj.AddImagesToDb(_db,uploads);
+            await oldProj.AddImagesToDb(_db, uploads);
             await Project.DeleteImagesFromDb(_db, oldProj.Id, deleteImages);
             await oldProj.DeleteCompetences(_db, competenceIds);
 
@@ -235,7 +236,7 @@ namespace ProjectRecruting.Controllers
 
         [Authorize]
         [HttpPost]
-        public async Task<bool> ApproveStudent(int projectId,string studentId)
+        public async Task<bool> ApproveStudent(int projectId, string studentId)
         {
             var claimsIdentity = this.User.Identity as ClaimsIdentity;
             var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
@@ -246,13 +247,13 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return false;
             }
-            
+
             return await proj.ChangeStatusUser(_db, StatusInProject.Approved, studentId);
         }
 
         [Authorize]
         [HttpPost]
-        public async Task<bool> CancelStudent(int projectId,string studentId)
+        public async Task<bool> CancelStudent(int projectId, string studentId)
         {
             var claimsIdentity = this.User.Identity as ClaimsIdentity;
             var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
@@ -271,13 +272,13 @@ namespace ProjectRecruting.Controllers
         [Authorize]
         public async Task<List<UserShort>> GetStudents(int projectId, string studentId, StatusInProject status)
         {
-           
+
             if (status != StatusInProject.Approved && status != StatusInProject.Canceled && status != StatusInProject.InProccessing)
                 return null;
 
             var claimsIdentity = this.User.Identity as ClaimsIdentity;
             var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
-            
+
             var proj = await ApplicationUser.CheckAccessEditProject(_db, projectId, userId);
 
             if (proj == null)
@@ -286,8 +287,8 @@ namespace ProjectRecruting.Controllers
                 return null;
             }
 
-            var ids= await proj.GetStudents(_db, StatusInProject.Approved);
-            return await ApplicationUser.GetShortsData(_db,ids);
+            var ids = await proj.GetStudents(_db, StatusInProject.Approved);
+            return await ApplicationUser.GetShortsData(_db, ids);
         }
 
     }

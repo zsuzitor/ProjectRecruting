@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models.Domain;
@@ -90,7 +92,7 @@ namespace ProjectRecruting.Models
 
 
         //кортеж item1-основной токен item2-рефлеш
-        public async Task<Tuple<string, string>> Refresh(ApplicationDbContext db, string userId, string refreshToken)
+        public async static Task<Tuple<string, string>> Refresh(ApplicationDbContext db, string userId, string refreshToken)
         {
             int hashToken = refreshToken.GetHashCode();
             var user = await db.Users.FirstOrDefaultAsync(x1 => x1.Id == userId && x1.RefreshTokenHash == hashToken);
@@ -103,7 +105,7 @@ namespace ProjectRecruting.Models
         }
 
         //кортеж item1-основной токен item2-рефлеш
-        public async Task<Tuple<string, string>> Refresh(ApplicationDbContext db, UserManager<ApplicationUser> userManager, string username, string password)
+        public async static Task<Tuple<string, string>> Refresh(ApplicationDbContext db, UserManager<ApplicationUser> userManager, string username, string password)
         {
             var user = await userManager.FindByNameAsync(username);
             if (user == null)
@@ -120,5 +122,42 @@ namespace ProjectRecruting.Models
         }
 
 
-    }
+
+        public static ClaimsPrincipal DecodeToken(StringValues authorizationToken, out SecurityToken tokenSecure)
+        {
+            //tokenSecure = null;
+            var key = Encoding.ASCII.GetBytes(AuthJWT.KEY);
+            var handler = new JwtSecurityTokenHandler();
+            var validations = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false,
+                ValidateAudience = false
+            };
+            return handler.ValidateToken(authorizationToken, validations, out  tokenSecure);
+        }
+
+
+        public static string GetCurentId(HttpContext context,out int status)
+        {
+            context.Request.Headers.TryGetValue("Authorization", out StringValues authorizationToken);
+            status = 0;
+            try
+            {
+                var claims = AuthJWT.DecodeToken(authorizationToken, out SecurityToken token);
+                return claims.Identity.Name;
+            }
+            catch (Exception e)//#TODO просрочен
+            {
+                status = 1;
+            }
+             catch //#TODO изменен извне
+            {
+                status = 2;
+            }
+            return null;
+        }
+
+        }
 }

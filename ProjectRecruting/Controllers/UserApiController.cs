@@ -26,6 +26,7 @@ namespace ProjectRecruting.Controllers
         }
 
         //true-существующая запись обновлена, false-добавлена новая, null-сейчас не обрабатывается-произошла ошибка
+        //оставить\обновить заявку пользователя на проект
         public async Task<bool?> RequestStudent(int projectId)
         {
             var claimsIdentity = this.User.Identity as ClaimsIdentity;
@@ -53,25 +54,16 @@ namespace ProjectRecruting.Controllers
             if (town == null)
             {
                 //выбрать все проекты независимо от города
-                return await Project.GetShortsData(_db,await Project.SortByActual(_db));
+                return await Project.GetShortsData(_db, await Project.SortByActual(_db));
             }
             string townLower = town.ToLower().Trim();
             var townDb = Town.GetByName(_db, townLower);
             if (townDb == null)
                 return res;
-            //var projids = await Project.GetByTown(_db, townDb.Id);
-            //_db.ProjectUsers.Join(projids,x1=>x1.ProjectId,x2=>x2,(x1,x2)=>)
-            //var actualListIds= await _db.ProjectUsers.Where(x1 => projids.Contains(x1.ProjectId)).Select(x1 => x1.ProjectId).
-            //     GroupBy(x1=>x1).OrderBy(x1=>x1.Count()).Select(x1=>x1.Key).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
-            //var actualListIds = await _db.ProjectUsers.Where(x1 => projids.Contains(x1.ProjectId)).//Select(x1 => x1.ProjectId).
-            //    GroupBy(x1 => x1.ProjectId).OrderBy(x1 => x1.Count()).Select(x1 => x1.Key).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
-            //var actualListIds =await Project.GetActualInTown(_db, townDb.Id);
-            //var actualListIds = await Project.GetActualEntityInTown(_db, townDb.Id);
+
             return await Project.GetActualShortEntityInTown(_db, townDb.Id);
 
 
-            //#TODO сломает всю сортировку
-            //return await Project.GetShortsData(_db, actualListIds);
 
         }
 

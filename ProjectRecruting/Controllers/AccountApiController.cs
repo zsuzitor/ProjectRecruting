@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using ProjectRecruting.Data;
@@ -19,8 +20,8 @@ namespace ProjectRecruting.Controllers
     [ApiController]
     public class AccountApiController : ControllerBase
     {
-        readonly UserManager<ApplicationUser> _userManager=null;
-        readonly ApplicationDbContext _db= null;
+        readonly UserManager<ApplicationUser> _userManager = null;
+        readonly ApplicationDbContext _db = null;
         //readonly ILogger<RegisterModel> _logger=null;
 
         public AccountApiController(UserManager<ApplicationUser> userManager, ApplicationDbContext db)
@@ -42,31 +43,15 @@ namespace ProjectRecruting.Controllers
                 await Response.WriteAsync("Invalid username or password.");
                 return;
             }
-            var identity =  AuthJWT.GetIdentity(user);
-            //if (identity == null)
-            //{
-            //    Response.StatusCode = 400;
-            //    await Response.WriteAsync("Invalid username or password.");
-            //    return;
-            //}
+            var identity = AuthJWT.GetIdentity(user);
+
             var encodedJwt = AuthJWT.GenerateMainToken(identity);
             var encodedRefJwt = AuthJWT.GenerateRefreshToken(10);
-            await user.SetRefreshToken(_db,encodedRefJwt);
-            //var now = DateTime.UtcNow;
-            //// создаем JWT-токен
-            //var jwt = new JwtSecurityToken(
-            //        issuer: AuthJWT.ISSUER,
-            //        audience: AuthJWT.AUDIENCE,
-            //        notBefore: now,
-            //        claims: identity.Claims,
-            //        expires: now.Add(TimeSpan.FromMinutes(AuthJWT.LIFETIME)),
-            //        signingCredentials: new SigningCredentials(AuthJWT.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
-            //var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
-
+            await user.SetRefreshToken(_db, encodedRefJwt);
             var response = new
             {
                 access_token = encodedJwt,
-                refresh_token= encodedRefJwt,
+                refresh_token = encodedRefJwt,
                 username = identity.Name
             };
 
@@ -82,10 +67,10 @@ namespace ProjectRecruting.Controllers
             if (!ModelState.IsValid)
             {
                 Response.StatusCode = 400;
-                return ;
+                return;
             }
 
-                var username = Request.Form["username"];
+            // var username = Request.Form["username"];
             //var password = Request.Form["password"];
 
 
@@ -94,11 +79,11 @@ namespace ProjectRecruting.Controllers
             if (!result.Succeeded)
             {
                 Response.StatusCode = 404;
-                return ;
+                return;
             }
-            
 
-            var identity =  AuthJWT.GetIdentity(user);
+
+            var identity = AuthJWT.GetIdentity(user);
             if (identity == null)
             {
                 Response.StatusCode = 400;
@@ -109,17 +94,6 @@ namespace ProjectRecruting.Controllers
             var encodedJwt = AuthJWT.GenerateMainToken(identity);
             var encodedRefJwt = AuthJWT.GenerateRefreshToken(10);
             await user.SetRefreshToken(_db, encodedRefJwt);
-
-            //var now = DateTime.UtcNow;
-            //// создаем JWT-токен
-            //var jwt = new JwtSecurityToken(
-            //        issuer: AuthJWT.ISSUER,
-            //        audience: AuthJWT.AUDIENCE,
-            //        notBefore: now,
-            //        claims: identity.Claims,
-            //        expires: now.Add(TimeSpan.FromMinutes(AuthJWT.LIFETIME)),
-            //        signingCredentials: new SigningCredentials(AuthJWT.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
-            //var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
 
             var response = new
             {
@@ -133,13 +107,44 @@ namespace ProjectRecruting.Controllers
             await Response.WriteAsync(JsonConvert.SerializeObject(response, new JsonSerializerSettings { Formatting = Formatting.Indented }));
         }
 
-
-        [HttpGet("Home")]
-        public  string Home()//, string confirmPassword
+        [HttpPost("RefreshToken")]
+        public async Task RefreshToken(string refreshToken)//, string confirmPassword
         {
-            var g = 10;
-            return "12344";
-        }
+            string userId = AuthJWT.GetCurentId(HttpContext, out int status);
+            //HttpContext.Request.Headers.TryGetValue("Authorization", out StringValues authorizationToken);
+            //var claims = AuthJWT.DecodeToken(authorizationToken, out SecurityToken token);
+            ////var wer=claims.Identities;
+            ////var wer1 = claims.Claims;
+            //var wer3 = claims.Identity;
+            //wer3.Name;
+            //wer3;
+            if (status != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return;
+            }
+            var tokens = await AuthJWT.Refresh(_db, userId, refreshToken);
+            var response = new
+            {
+                access_token = tokens.Item1,
+                refresh_token = tokens.Item2
+            };
+
+            Response.ContentType = "application/json";
+            await Response.WriteAsync(JsonConvert.SerializeObject(tokens, new JsonSerializerSettings { Formatting = Formatting.Indented }));
+
+
+            //return status.ToString();
 
         }
+
+
+        //[HttpGet("Home")]
+        //public string Home()//, string confirmPassword
+        //{
+        //    var g = 10;
+        //    return "12344";
+        //}
+
+    }
 }
