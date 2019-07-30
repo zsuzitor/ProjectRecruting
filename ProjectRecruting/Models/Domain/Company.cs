@@ -1,4 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.EntityFrameworkCore;
+using ProjectRecruting.Data;
 using ProjectRecruting.Models.Domain.ManyToMany;
 using System;
 using System.Collections.Generic;
@@ -46,5 +48,12 @@ namespace ProjectRecruting.Models.Domain
                 Image = image;
 
         }
-    }
+
+        public async static Task<Company> GetIfAccess(ApplicationDbContext db,string userId, int companyId)
+        {
+            var companyUser = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.CompanyId == companyId && x1.UserId == userId);
+            return await db.Companys.FirstOrDefaultAsync(x1 => x1.Id == companyId);
+        }
+
+        }
 }

@@ -21,10 +21,40 @@ namespace ProjectRecruting.Models.Domain
 
         }
 
+        public Town(string name)
+        {
+            Name = name;
+        }
 
         public async static Task<Town> GetByName(ApplicationDbContext db,string name)
         {
             return await db.Towns.FirstOrDefaultAsync(x1 => x1.Name == name);
         }
+
+        public async static Task<List<Town>> GetOrCreate(ApplicationDbContext db, string[] townNames)
+        {
+            if (townNames == null || townNames.Length == 0)
+                return new List<Town>();
+            for (int i=0;i< townNames.Length;++i)
+            {
+                townNames[i] = townNames[i].ToLower().Trim();
+            }
+            var townsExists= await db.Towns.Where(x1=> townNames.Contains(x1.Name)).ToListAsync();
+            List<Town> notExist = new List<Town>();
+            foreach (var i in townNames)
+            {
+                if (townsExists.FirstOrDefault(x1 => x1.Name == i) != null)
+                    continue;
+                notExist.Add(new Town(i));
+
+            }
+            db.Towns.AddRange(notExist);
+            await db.SaveChangesAsync();
+            notExist.AddRange(townsExists);
+
+            return notExist;
+        }
+
+
     }
 }

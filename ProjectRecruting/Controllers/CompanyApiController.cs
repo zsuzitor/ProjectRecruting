@@ -96,8 +96,15 @@ namespace ProjectRecruting.Controllers
             //    Response.StatusCode = 404;
             //    return null;
             //}
+            //var companyUser = await _db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.CompanyId == company.Id&&x1.UserId==userId);
+            //if (companyUser == null)
+            //{
+            //    Response.StatusCode = 404;
+            //    return null;
+            //}
+            var oldCompany = await Company.GetIfAccess(_db,userId,company.Id);
 
-            var oldCompany = await _db.Companys.FirstOrDefaultAsync(x1 => x1.Id == company.Id);
+            //var oldCompany = await _db.Companys.FirstOrDefaultAsync(x1 => x1.Id == company.Id);
             if (oldCompany == null)
             {
                 Response.StatusCode = 404;
@@ -105,7 +112,6 @@ namespace ProjectRecruting.Controllers
             }
             byte[] newImage = null;
             if (uploadedFile != null)
-
                 using (var binaryReader = new BinaryReader(uploadedFile.OpenReadStream()))
                 {
                     newImage = binaryReader.ReadBytes((int)uploadedFile.Length);
@@ -118,7 +124,7 @@ namespace ProjectRecruting.Controllers
 
         [Authorize]
         [HttpPost]
-        public async Task<Project> CreateProject(Project project, IFormFileCollection uploads, string[] competences)
+        public async Task<Project> CreateProject(Project project, IFormFileCollection uploads, string[] competences,string[] townNames)
         {
             string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -149,6 +155,20 @@ namespace ProjectRecruting.Controllers
             await newProject.AddImagesToDb(_db, uploads);
             await newProject.AddCompetences(_db, competences);
 
+            var listTown=await Town.GetOrCreate(_db, townNames);
+            foreach (var i in listTown)
+            {
+                _db.ProjectTowns.Add(new Models.Domain.ManyToMany.ProjectTown(i.Id, newProject.Id));
+            }
+            //var town=await Town.GetByName(_db,townName);
+            //if(town==null)
+            //{
+            //    town = new Town(townName);
+            //    _db.Towns.Add(town);
+            //    await _db.SaveChangesAsync();
+            //}
+            //_db.ProjectTowns.Add(new Models.Domain.ManyToMany.ProjectTown(town.Id,newProject.Id));
+            await _db.SaveChangesAsync();
 
             return newProject;
 
@@ -193,10 +213,10 @@ namespace ProjectRecruting.Controllers
 
         }
 
-
+        //меняет статус проекта на закрытый
         [Authorize]
         [HttpPost]
-        public async Task<bool> CloseProject(int projectId)
+        public async Task<bool> CloseProject(int projectId)//#TODO хз стоит ли объединять с CompliteProject в метод ChangeStatusProject
         {
             string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -216,9 +236,10 @@ namespace ProjectRecruting.Controllers
         }
 
 
+        //меняет статус проекта на выполненный
         [Authorize]
         [HttpPost]
-        public async Task<bool> CompliteProject(int projectId)
+        public async Task<bool> CompliteProject(int projectId)//#TODO хз стоит ли объединять с CloseProject в метод ChangeStatusProject
         {
             string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -282,7 +303,7 @@ namespace ProjectRecruting.Controllers
 
 
         [Authorize]
-        public async Task<List<UserShort>> GetStudents(int projectId, string studentId, StatusInProject status)
+        public async Task<List<UserShort>> GetStudents(int projectId, StatusInProject status)
         {
 
             if (status != StatusInProject.Approved && status != StatusInProject.Canceled && status != StatusInProject.InProccessing)
@@ -303,8 +324,8 @@ namespace ProjectRecruting.Controllers
                 return null;
             }
 
-            var ids = await proj.GetStudents(_db, StatusInProject.Approved);
-            return await ApplicationUser.GetShortsData(_db, ids);
+            var usersShort = await proj.GetStudentsShortEntity(_db, status);
+            return usersShort;
         }
 
     }

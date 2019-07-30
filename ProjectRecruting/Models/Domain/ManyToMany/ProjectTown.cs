@@ -19,5 +19,11 @@ namespace ProjectRecruting.Models.Domain.ManyToMany
         {
 
         }
+
+        public ProjectTown(int townId,int projectId)
+        {
+            TownId = townId;
+            ProjectId = projectId;
+        }
     }
 }

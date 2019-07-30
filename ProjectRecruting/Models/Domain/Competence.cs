@@ -41,7 +41,7 @@ namespace ProjectRecruting.Models.Domain
         //составляем запрос
         public static IQueryable<Competence> GetActualQueryEntityInTown(ApplicationDbContext db, int townId)
         {
-            return db.CompetenceProjects.Join(db.ProjectTowns, x1 => x1.ProjectId, x2 => x2.ProjectId, (x1, x2) => new { competenceId = x1.CompetenceId, townId = x2.TownId }).
+            return db.CompetenceProjects.Join(db.ProjectTowns, x1 => x1.ProjectId, x2 => x2.ProjectId, (x1, x2) => new { competenceId = x1.CompetenceId, townId = x2.TownId }).//#TODO #join
                Where(x1=>x1.townId==townId).
                 GroupBy(x1 => x1.competenceId)
                .Join(db.Competences, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { group = x1, entity = x2 }).

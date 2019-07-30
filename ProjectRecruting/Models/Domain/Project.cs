@@ -180,13 +180,26 @@ namespace ProjectRecruting.Models.Domain
             await db.SaveChangesAsync();
         }
 
-
-        public async Task<List<string>> GetStudents(ApplicationDbContext db, StatusInProject status)
+        public  IQueryable<string> GetStudentsQuery(ApplicationDbContext db, StatusInProject status)
         {
             //List<UserShort> res = new List<UserShort>();
-            return await db.Entry(this).Collection(x1 => x1.ProjectUsers).Query().Where(x1 => x1.Status == status).Select(x1 => x1.UserId).ToListAsync();
+            return  db.Entry(this).Collection(x1 => x1.ProjectUsers).Query().Where(x1 => x1.Status == status).Select(x1 => x1.UserId);
 
         }
+        public async Task<List<string>> GetStudents(ApplicationDbContext db, StatusInProject status)
+        {
+            return await this.GetStudentsQuery(db, status).ToListAsync();
+            //List<UserShort> res = new List<UserShort>();
+           // return await db.Entry(this).Collection(x1 => x1.ProjectUsers).Query().Where(x1 => x1.Status == status).Select(x1 => x1.UserId).ToListAsync();
+
+        }
+        public async Task<List<UserShort>> GetStudentsShortEntity(ApplicationDbContext db, StatusInProject status)
+        {
+            //List<UserShort> res = new List<UserShort>();
+            return await this.GetStudentsQuery(db, status).Join(db.Users,x1=>x1,x2=>x2.Id,(x1,x2)=>new UserShort(x2.Name,x2.Id)).ToListAsync();
+
+        }
+
 
 
         public async static Task<List<ProjectShort>> GetShortsData(ApplicationDbContext db, List<int> projectIds)
@@ -220,7 +233,7 @@ namespace ProjectRecruting.Models.Domain
         {
             return  db.ProjectUsers.//Select(x1 => x1.ProjectId).
                GroupBy(x1 => x1.ProjectId)
-               .Join(db.ProjectTowns, x1 => x1.Key, x2 => x2.ProjectId, (x1, x2) => new { group = x1, town = x2 }).Where(x1 => x1.town.TownId == townId).
+               .Join(db.ProjectTowns, x1 => x1.Key, x2 => x2.ProjectId, (x1, x2) => new { group = x1, town = x2 }).Where(x1 => x1.town.TownId == townId).//#TODO #join
                Join(db.Projects, x1 => x1.group.Key, x2 => x2.Id, (x1, x2) => new { group = x1.group, entity = x2 }).
                OrderBy(x1 => x1.group.Count()).Select(x1 => x1.entity);
         }
@@ -230,9 +243,13 @@ namespace ProjectRecruting.Models.Domain
             return await Project.GetActualQueryEntityInTown(db,townId).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
         }
         //получаем сокращенные данные
-        public async static Task<List<ProjectShort>> GetActualShortEntityInTown(ApplicationDbContext db, int townId)
+        public async static Task<List<ProjectShort>> GetActualShortEntityInTown(ApplicationDbContext db, int townId,string userId)
         {
-            return await Project.GetActualQueryEntityInTown(db, townId).Select(x1=>new ProjectShort(x1.Name,x1.Id)).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
+            return await Project.GetActualQueryEntityInTown(db, townId).
+Join(db.ProjectUsers,x1=>x1.Id,x2=>x2.ProjectId,(x1,x2)=>new { }) //#TODO #join               
+
+
+                .Select(x1=>new ProjectShort(x1.Name,x1.Id)).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
         }
 
         public async static Task<List<int>> SortByActual(ApplicationDbContext db)
