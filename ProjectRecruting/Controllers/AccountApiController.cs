@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
+using ProjectRecruting.Data;
 using ProjectRecruting.Models;
 using ProjectRecruting.Models.Domain;
 
@@ -19,11 +20,13 @@ namespace ProjectRecruting.Controllers
     public class AccountApiController : ControllerBase
     {
         readonly UserManager<ApplicationUser> _userManager=null;
+        readonly ApplicationDbContext _db= null;
         //readonly ILogger<RegisterModel> _logger=null;
 
-        public AccountApiController(UserManager<ApplicationUser> userManager)
+        public AccountApiController(UserManager<ApplicationUser> userManager, ApplicationDbContext db)
         {
             _userManager = userManager;
+            _db = db;
         }
 
         [AllowAnonymous]
@@ -32,29 +35,38 @@ namespace ProjectRecruting.Controllers
         {
             //var username = Request.Form["username"];
             //var password = Request.Form["password"];
-
-            var identity = await AuthJWT.GetIdentity(username, password, _userManager);
-            if (identity == null)
+            var user = await ApplicationUser.LoginGet(_userManager, username, password);
+            if (user == null)
             {
                 Response.StatusCode = 400;
                 await Response.WriteAsync("Invalid username or password.");
                 return;
             }
+            var identity =  AuthJWT.GetIdentity(user);
+            //if (identity == null)
+            //{
+            //    Response.StatusCode = 400;
+            //    await Response.WriteAsync("Invalid username or password.");
+            //    return;
+            //}
+            var encodedJwt = AuthJWT.GenerateMainToken(identity);
+            var encodedRefJwt = AuthJWT.GenerateRefreshToken(10);
+            await user.SetRefreshToken(_db,encodedRefJwt);
+            //var now = DateTime.UtcNow;
+            //// создаем JWT-токен
+            //var jwt = new JwtSecurityToken(
+            //        issuer: AuthJWT.ISSUER,
+            //        audience: AuthJWT.AUDIENCE,
+            //        notBefore: now,
+            //        claims: identity.Claims,
+            //        expires: now.Add(TimeSpan.FromMinutes(AuthJWT.LIFETIME)),
+            //        signingCredentials: new SigningCredentials(AuthJWT.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
+            //var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
 
-            var now = DateTime.UtcNow;
-            // создаем JWT-токен
-            var jwt = new JwtSecurityToken(
-                    issuer: AuthJWT.ISSUER,
-                    audience: AuthJWT.AUDIENCE,
-                    notBefore: now,
-                    claims: identity.Claims,
-                    expires: now.Add(TimeSpan.FromMinutes(AuthJWT.LIFETIME)),
-                    signingCredentials: new SigningCredentials(AuthJWT.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
-            var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
-            
             var response = new
             {
                 access_token = encodedJwt,
+                refresh_token= encodedRefJwt,
                 username = identity.Name
             };
 
@@ -84,24 +96,9 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return ;
             }
-            // _logger.LogInformation("User created a new account with password.");
+            
 
-            //var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            //var callbackUrl = Url.Page(
-            //    "/Account/ConfirmEmail",
-            //    pageHandler: null,
-            //    values: new { userId = user.Id, code = code },
-            //    protocol: Request.Scheme);
-
-            //await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
-            //    $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
-
-            //await _signInManager.SignInAsync(user, isPersistent: false);
-            //return LocalRedirect(returnUrl);
-
-
-
-            var identity = await AuthJWT.GetIdentity(model.Email, model.Password, _userManager);
+            var identity =  AuthJWT.GetIdentity(user);
             if (identity == null)
             {
                 Response.StatusCode = 400;
@@ -109,20 +106,25 @@ namespace ProjectRecruting.Controllers
                 return;
             }
 
-            var now = DateTime.UtcNow;
-            // создаем JWT-токен
-            var jwt = new JwtSecurityToken(
-                    issuer: AuthJWT.ISSUER,
-                    audience: AuthJWT.AUDIENCE,
-                    notBefore: now,
-                    claims: identity.Claims,
-                    expires: now.Add(TimeSpan.FromMinutes(AuthJWT.LIFETIME)),
-                    signingCredentials: new SigningCredentials(AuthJWT.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
-            var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
+            var encodedJwt = AuthJWT.GenerateMainToken(identity);
+            var encodedRefJwt = AuthJWT.GenerateRefreshToken(10);
+            await user.SetRefreshToken(_db, encodedRefJwt);
+
+            //var now = DateTime.UtcNow;
+            //// создаем JWT-токен
+            //var jwt = new JwtSecurityToken(
+            //        issuer: AuthJWT.ISSUER,
+            //        audience: AuthJWT.AUDIENCE,
+            //        notBefore: now,
+            //        claims: identity.Claims,
+            //        expires: now.Add(TimeSpan.FromMinutes(AuthJWT.LIFETIME)),
+            //        signingCredentials: new SigningCredentials(AuthJWT.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
+            //var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
 
             var response = new
             {
                 access_token = encodedJwt,
+                refresh_token = encodedRefJwt,
                 username = identity.Name
             };
 

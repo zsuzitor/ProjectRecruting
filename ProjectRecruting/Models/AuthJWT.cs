@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using ProjectRecruting.Data;
 using ProjectRecruting.Models.Domain;
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
@@ -14,8 +17,9 @@ namespace ProjectRecruting.Models
     {
         public const string ISSUER = "MyAuthServer"; // издатель токена
         public const string AUDIENCE = "https://localhost:44356/"; // потребитель токена
-        const string KEY = "mysupersecret_secretkey!123";   // ключ для шифрации
+        public const string KEY = "mysupersecret_secretkey!123";   // ключ для шифрации
         public const int LIFETIME = 10; // время жизни токена - 1 минута
+        //public const int JwtExpireDays = 10; 
         public static SymmetricSecurityKey GetSymmetricSecurityKey()
         {
             return new SymmetricSecurityKey(Encoding.ASCII.GetBytes(KEY));
@@ -28,31 +32,29 @@ namespace ProjectRecruting.Models
 
         public async static Task<ClaimsIdentity> GetIdentity(string username, string password, UserManager<ApplicationUser> userManager)
         {
-            //var claims = new List<Claim>
-            //    {
-            //        new Claim(type:ClaimsIdentity.DefaultNameClaimType,value:"admin@gmail.com"),//,
-            //         //new Claim(type:ClaimTypes.Name,value:user.UserName)//,
-            //        new Claim(type:ClaimsIdentity.DefaultRoleClaimType, value:"testRole")
-            //    };
-            //ClaimsIdentity claimsIdentity =
-            //new ClaimsIdentity(claims, "Token", ClaimsIdentity.DefaultNameClaimType,
-            //    ClaimsIdentity.DefaultRoleClaimType);
-            //return claimsIdentity;
+            var user = await ApplicationUser.LoginGet(userManager, username, password);
 
+            //var user = await userManager.FindByNameAsync(username);
+            //if (user == null)
+            //    return null;
 
+            //var passwordOK = await userManager.CheckPasswordAsync(user, password);
+            //if (!passwordOK)
+            //    return null;
 
-            var user = await userManager.FindByNameAsync(username);
+            return AuthJWT.GetIdentity(user);
+
+        }
+
+        public static ClaimsIdentity GetIdentity(ApplicationUser user)
+        {
+
             if (user == null)
                 return null;
 
-            var passwordOK = await userManager.CheckPasswordAsync(user, password);
-            if (!passwordOK)
-                return null;
-
-
             var claims = new List<Claim>
                 {
-                    new Claim(type:ClaimsIdentity.DefaultNameClaimType,value:user.Email),//,
+                    new Claim(type:ClaimsIdentity.DefaultNameClaimType,value:user.Id),//,Email
                      //new Claim(type:ClaimTypes.Name,value:user.UserName)//,
                     new Claim(type:ClaimsIdentity.DefaultRoleClaimType, value:"testRole")
                 };
@@ -61,9 +63,62 @@ namespace ProjectRecruting.Models
                 ClaimsIdentity.DefaultRoleClaimType);
             return claimsIdentity;
 
-
-            // если пользователя не найдено
-            //return null;
         }
+
+
+        public static string GenerateRefreshToken(int length)
+        {
+            Random random = new Random();
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+
+        public static string GenerateMainToken(ClaimsIdentity identity)
+        {
+            var now = DateTime.UtcNow;
+            // создаем JWT-токен
+            var jwt = new JwtSecurityToken(
+                    issuer: AuthJWT.ISSUER,
+                    audience: AuthJWT.AUDIENCE,
+                    notBefore: now,
+                    claims: identity.Claims,
+                    expires: now.Add(TimeSpan.FromMinutes(AuthJWT.LIFETIME)),
+                    signingCredentials: new SigningCredentials(AuthJWT.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
+            return new JwtSecurityTokenHandler().WriteToken(jwt);
+        }
+
+
+        //кортеж item1-основной токен item2-рефлеш
+        public async Task<Tuple<string, string>> Refresh(ApplicationDbContext db, string userId, string refreshToken)
+        {
+            int hashToken = refreshToken.GetHashCode();
+            var user = await db.Users.FirstOrDefaultAsync(x1 => x1.Id == userId && x1.RefreshTokenHash == hashToken);
+            if (user == null)
+                return null;
+            string token = AuthJWT.GenerateRefreshToken(10);
+            await user.SetRefreshToken(db, token);
+            
+            return new Tuple<string, string>(AuthJWT.GenerateMainToken(AuthJWT.GetIdentity(user)), token);
+        }
+
+        //кортеж item1-основной токен item2-рефлеш
+        public async Task<Tuple<string, string>> Refresh(ApplicationDbContext db, UserManager<ApplicationUser> userManager, string username, string password)
+        {
+            var user = await userManager.FindByNameAsync(username);
+            if (user == null)
+                return null;
+
+            var passwordOK = await userManager.CheckPasswordAsync(user, password);
+            if (!passwordOK)
+                return null;
+
+            string refToken = AuthJWT.GenerateRefreshToken(10);
+            await user.SetRefreshToken(db, refToken);
+
+            return new Tuple<string, string>(AuthJWT.GenerateMainToken(AuthJWT.GetIdentity(user)), refToken);
+        }
+
+
     }
 }

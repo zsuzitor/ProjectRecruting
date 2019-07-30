@@ -17,6 +17,9 @@ using ProjectRecruting.Models.Domain;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authorization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using System.Security.Claims;
 
 namespace ProjectRecruting
 {
@@ -45,45 +48,70 @@ namespace ProjectRecruting
 
 
 
-            //services.AddDefaultIdentity<IdentityUser>()
-            //    .AddEntityFrameworkStores<ApplicationDbContext>();
-            services.AddIdentity<ApplicationUser, IdentityRole>()
+
+            services.AddIdentity<ApplicationUser, IdentityRole>(options=>
+            {
+                options.ClaimsIdentity.UserIdClaimType = ClaimsIdentity.DefaultNameClaimType;
+            })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
+            //services.AddTransient<UserManager<ApplicationUser>>();
 
 
+            //JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear(); // => remove default claims
+            //services
+            //    .AddAuthentication(options =>
+            //    {
+            //        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            //        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            //        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 
+            //    })
+            //    .AddJwtBearer(cfg =>
+            //    {
+            //        cfg.RequireHttpsMetadata = false;
+            //        cfg.SaveToken = true;
+            //        cfg.TokenValidationParameters = new TokenValidationParameters
+            //        {
+            //            ValidIssuer = AuthJWT.ISSUER,
+            //            ValidAudience = AuthJWT.ISSUER,
+            //            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(AuthJWT.KEY)),
+            //            ClockSkew = TimeSpan.Zero // remove delay of token when expire
+            //        };
+            //    });
+
+            JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                    .AddJwtBearer(options =>
                    {
                        options.RequireHttpsMetadata = false;//TODO надо поставить true для ssl
                        options.TokenValidationParameters = new TokenValidationParameters
                        {
-                            // укзывает, будет ли валидироваться издатель при валидации токена
-                            ValidateIssuer = true,
-                            // строка, представляющая издателя
-                            ValidIssuer = AuthJWT.ISSUER,
+                           // укзывает, будет ли валидироваться издатель при валидации токена
+                           ValidateIssuer = true,
+                           // строка, представляющая издателя
+                           ValidIssuer = AuthJWT.ISSUER,
 
-                            // будет ли валидироваться потребитель токена
-                            ValidateAudience = true,
-                            // установка потребителя токена
-                            ValidAudience = AuthJWT.AUDIENCE,
-                            // будет ли валидироваться время существования
-                            ValidateLifetime = true,
+                           // будет ли валидироваться потребитель токена
+                           ValidateAudience = true,
+                           // установка потребителя токена
+                           ValidAudience = AuthJWT.AUDIENCE,
+                           // будет ли валидироваться время существования
+                           ValidateLifetime = true,
 
-                            // установка ключа безопасности
-                            IssuerSigningKey = AuthJWT.GetSymmetricSecurityKey(),
-                            // валидация ключа безопасности
-                            ValidateIssuerSigningKey = true,
+                           // установка ключа безопасности
+                           IssuerSigningKey = AuthJWT.GetSymmetricSecurityKey(),
+                           // валидация ключа безопасности
+                           ValidateIssuerSigningKey = true,
                        };
                    });
 
-            services.AddAuthorization(options =>
-            {
-                options.DefaultPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
-                .RequireAuthenticatedUser()
-                .Build();
-            });
+            //services.AddAuthorization(options =>
+            //{
+            //    options.DefaultPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
+            //    .RequireAuthenticatedUser()
+            //    .Build();
+            //});
 
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);

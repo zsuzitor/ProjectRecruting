@@ -4,6 +4,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Linq;
 using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -11,6 +12,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Primitives;
+using Microsoft.IdentityModel.Tokens;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models;
 using ProjectRecruting.Models.Domain;
@@ -37,6 +39,21 @@ namespace ProjectRecruting.Controllers
             StringValues authorizationToken ;
             HttpContext.Request.Headers.TryGetValue("Authorization", out authorizationToken);
             var wer=new JwtSecurityTokenHandler().ReadJwtToken(authorizationToken);
+
+            //-----
+            //string secret = "this is a string used for encrypt and decrypt token";
+            var key = Encoding.ASCII.GetBytes(AuthJWT.KEY);
+            var handler = new JwtSecurityTokenHandler();
+            var validations = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false,
+                ValidateAudience = false
+            };
+            var claims = handler.ValidateToken(authorizationToken, validations, out var tokenSecure);
+            //--
+
 
 
             var claimsIdentity = this.User.Identity as ClaimsIdentity;

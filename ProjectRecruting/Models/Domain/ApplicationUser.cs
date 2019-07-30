@@ -15,6 +15,8 @@ namespace ProjectRecruting.Models.Domain
         public string Name { get; set; }
         public string SurName { get; set; }
 
+        
+        public int RefreshTokenHash { get; set; }
 
         public List<CompanyUser> CompanyUsers { get; set; }
 
@@ -25,6 +27,25 @@ namespace ProjectRecruting.Models.Domain
 
         }
 
+
+        public async Task SetRefreshToken(ApplicationDbContext db,string token)
+        {
+            this.RefreshTokenHash = token.GetHashCode() ;
+            await db.SaveChangesAsync();
+        }
+
+        //получить по логину и паролю
+        public async static Task<ApplicationUser> LoginGet(UserManager<ApplicationUser> userManager, string userName,string password)
+        {
+            var user=await userManager.FindByEmailAsync(userName);
+            if (user == null)
+                return null;
+            var passwordOK = await userManager.CheckPasswordAsync(user, password);
+            if (!passwordOK)
+                return null;
+            return user;
+
+        }
 
         public async Task LoadProjectUsers(ApplicationDbContext db)
         {
