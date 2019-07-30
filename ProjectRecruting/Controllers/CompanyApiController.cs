@@ -35,41 +35,25 @@ namespace ProjectRecruting.Controllers
         [HttpPost("CreateCompany")]
         public async Task<Company> CreateCompany([FromForm]Company company, [FromForm]IFormFile uploadedFile)
         {
-            //var headers = Request.Headers;
-            //StringValues authorizationToken ;
-            HttpContext.Request.Headers.TryGetValue("Authorization", out StringValues authorizationToken);
-            //var wer=new JwtSecurityTokenHandler().ReadJwtToken(authorizationToken);
+           
 
-            ////-----
-            ////string secret = "this is a string used for encrypt and decrypt token";
-            //var key = Encoding.ASCII.GetBytes(AuthJWT.KEY);
-            //var handler = new JwtSecurityTokenHandler();
-            //var validations = new TokenValidationParameters
-            //{
-            //    ValidateIssuerSigningKey = true,
-            //    IssuerSigningKey = new SymmetricSecurityKey(key),
-            //    ValidateIssuer = false,
-            //    ValidateAudience = false
-            //};
-            //var claims = handler.ValidateToken(authorizationToken, validations, out var tokenSecure);
-            //--
-
-            var claims = AuthJWT.DecodeToken(authorizationToken, out SecurityToken token);
-
-
-            var claimsIdentity = this.User.Identity as ClaimsIdentity;
-            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            if (statusId != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return null;
+            }
 
             if (!ModelState.IsValid)
             {
                 Response.StatusCode = 404;
                 return null;
             }
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                Response.StatusCode = 404;
-                return null;
-            }
+            //if (string.IsNullOrWhiteSpace(userId))
+            //{
+            //    Response.StatusCode = 404;
+            //    return null;
+            //}
 
             Company newCompany = new Company(company.Name, company.Description, company.Number, company.Email);
             if (uploadedFile != null)
@@ -92,8 +76,12 @@ namespace ProjectRecruting.Controllers
         [HttpPost]
         public async Task<Company> ChangeCompany(Company company, IFormFile uploadedFile)
         {
-            var claimsIdentity = this.User.Identity as ClaimsIdentity;
-            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            if (statusId != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return null;
+            }
 
 
             if (company.Id == 0)
@@ -103,11 +91,11 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return null;
             }
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                Response.StatusCode = 404;
-                return null;
-            }
+            //if (string.IsNullOrWhiteSpace(userId))
+            //{
+            //    Response.StatusCode = 404;
+            //    return null;
+            //}
 
             var oldCompany = await _db.Companys.FirstOrDefaultAsync(x1 => x1.Id == company.Id);
             if (oldCompany == null)
@@ -132,19 +120,23 @@ namespace ProjectRecruting.Controllers
         [HttpPost]
         public async Task<Project> CreateProject(Project project, IFormFileCollection uploads, string[] competences)
         {
-            var claimsIdentity = this.User.Identity as ClaimsIdentity;
-            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            if (statusId != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return null;
+            }
 
             if (!ModelState.IsValid)
             {
                 Response.StatusCode = 404;
                 return null;
             }
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                Response.StatusCode = 404;
-                return null;
-            }
+            //if (string.IsNullOrWhiteSpace(userId))
+            //{
+            //    Response.StatusCode = 404;
+            //    return null;
+            //}
             if (!await ApplicationUser.CheckAccessEditCompany(_db, project.CompanyId, userId))
             {
                 Response.StatusCode = 404;
@@ -167,19 +159,23 @@ namespace ProjectRecruting.Controllers
         [HttpPost]
         public async Task<bool> ChangeProject(Project project, IFormFileCollection uploads, int[] deleteImages, int[] competenceIds)
         {
-            var claimsIdentity = this.User.Identity as ClaimsIdentity;
-            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            if (statusId != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return false;
+            }
 
             if (!ModelState.IsValid)
             {
                 Response.StatusCode = 404;
                 return false;
             }
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                Response.StatusCode = 404;
-                return false;
-            }
+            //if (string.IsNullOrWhiteSpace(userId))
+            //{
+            //    Response.StatusCode = 404;
+            //    return false;
+            //}
             var oldProj = await ApplicationUser.CheckAccessEditProject(_db, project.Id, userId);
             if (oldProj == null)
             {
@@ -202,8 +198,12 @@ namespace ProjectRecruting.Controllers
         [HttpPost]
         public async Task<bool> CloseProject(int projectId)
         {
-            var claimsIdentity = this.User.Identity as ClaimsIdentity;
-            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            if (statusId != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return false;
+            }
 
             var proj = await ApplicationUser.CheckAccessEditProject(_db, projectId, userId);
             if (proj == null)
@@ -220,8 +220,12 @@ namespace ProjectRecruting.Controllers
         [HttpPost]
         public async Task<bool> CompliteProject(int projectId)
         {
-            var claimsIdentity = this.User.Identity as ClaimsIdentity;
-            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            if (statusId != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return false;
+            }
 
             var proj = await ApplicationUser.CheckAccessEditProject(_db, projectId, userId);
             if (proj == null)
@@ -238,8 +242,12 @@ namespace ProjectRecruting.Controllers
         [HttpPost]
         public async Task<bool> ApproveStudent(int projectId, string studentId)
         {
-            var claimsIdentity = this.User.Identity as ClaimsIdentity;
-            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            if (statusId != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return false;
+            }
 
             var proj = await ApplicationUser.CheckAccessEditProject(_db, projectId, userId);
             if (proj == null)
@@ -255,8 +263,12 @@ namespace ProjectRecruting.Controllers
         [HttpPost]
         public async Task<bool> CancelStudent(int projectId, string studentId)
         {
-            var claimsIdentity = this.User.Identity as ClaimsIdentity;
-            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            if (statusId != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return false;
+            }
 
             var proj = await ApplicationUser.CheckAccessEditProject(_db, projectId, userId);
             if (proj == null)
@@ -276,8 +288,12 @@ namespace ProjectRecruting.Controllers
             if (status != StatusInProject.Approved && status != StatusInProject.Canceled && status != StatusInProject.InProccessing)
                 return null;
 
-            var claimsIdentity = this.User.Identity as ClaimsIdentity;
-            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            if (statusId != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return null;
+            }
 
             var proj = await ApplicationUser.CheckAccessEditProject(_db, projectId, userId);
 

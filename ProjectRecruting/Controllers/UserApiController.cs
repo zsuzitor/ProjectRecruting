@@ -29,8 +29,13 @@ namespace ProjectRecruting.Controllers
         //оставить\обновить заявку пользователя на проект
         public async Task<bool?> RequestStudent(int projectId)
         {
-            var claimsIdentity = this.User.Identity as ClaimsIdentity;
-            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+            string userId = AuthJWT.GetCurentId(HttpContext, out int status);
+
+            if (status != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return null;
+            }
             var project = await Project.Get(_db, projectId);
             return await project.CreateChangeStatusUser(_db, Models.StatusInProject.InProccessing, userId);
         }
@@ -38,8 +43,13 @@ namespace ProjectRecruting.Controllers
         //студент отзывает заявку
         public async Task<bool?> CancelByStudent(int projectId)
         {
-            var claimsIdentity = this.User.Identity as ClaimsIdentity;
-            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+            string userId = AuthJWT.GetCurentId(HttpContext, out int status);
+
+            if (status != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return null;
+            }
             var project = await Project.Get(_db, projectId);
             return await project.CreateChangeStatusUser(_db, Models.StatusInProject.CanceledByStudent, userId);
         }
@@ -49,8 +59,7 @@ namespace ProjectRecruting.Controllers
         public async Task<List<ProjectShort>> GetActualProject(string town)
         {
             List<ProjectShort> res = new List<ProjectShort>();
-            var claimsIdentity = this.User.Identity as ClaimsIdentity;
-            var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+            
             if (town == null)
             {
                 //выбрать все проекты независимо от города
@@ -72,8 +81,7 @@ namespace ProjectRecruting.Controllers
         public async Task<List<CompetenceShort>> GetActualCompetences(string town)
         {
             List<CompetenceShort> res = new List<CompetenceShort>();
-            //var claimsIdentity = this.User.Identity as ClaimsIdentity;
-            //var userId = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+            
             if (town == null)
             {
                 //выбрать все проекты независимо от города

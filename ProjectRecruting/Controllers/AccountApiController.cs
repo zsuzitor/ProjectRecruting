@@ -111,13 +111,7 @@ namespace ProjectRecruting.Controllers
         public async Task RefreshToken(string refreshToken)//, string confirmPassword
         {
             string userId = AuthJWT.GetCurentId(HttpContext, out int status);
-            //HttpContext.Request.Headers.TryGetValue("Authorization", out StringValues authorizationToken);
-            //var claims = AuthJWT.DecodeToken(authorizationToken, out SecurityToken token);
-            ////var wer=claims.Identities;
-            ////var wer1 = claims.Claims;
-            //var wer3 = claims.Identity;
-            //wer3.Name;
-            //wer3;
+           
             if (status != 0 || userId == null)
             {
                 Response.StatusCode = 401;
