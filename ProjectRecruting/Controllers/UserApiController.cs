@@ -27,7 +27,7 @@ namespace ProjectRecruting.Controllers
 
         //true-существующая запись обновлена, false-добавлена новая, null-сейчас не обрабатывается-произошла ошибка
         //оставить\обновить заявку пользователя на проект
-        public async Task<bool?> RequestStudent(int projectId)
+        public async Task<bool?> RequestStudent([FromForm]int projectId)
         {
             string userId = AuthJWT.GetCurentId(HttpContext, out int status);
 
@@ -41,7 +41,7 @@ namespace ProjectRecruting.Controllers
         }
 
         //студент отзывает заявку
-        public async Task<bool?> CancelByStudent(int projectId)
+        public async Task<bool?> CancelByStudent([FromForm]int projectId)
         {
             string userId = AuthJWT.GetCurentId(HttpContext, out int status);
 
@@ -56,7 +56,7 @@ namespace ProjectRecruting.Controllers
 
 
         //просмотреть список актуальных проектов для города #TODO надо подсвечивать куда подал заявку
-        public async Task<List<ProjectShort>> GetActualProject(string town)
+        public async Task<List<ProjectShort>> GetActualProject([FromForm]string town)
         {
             string userId = AuthJWT.GetCurentId(HttpContext, out int status);
 
@@ -80,7 +80,7 @@ namespace ProjectRecruting.Controllers
 
 
         //список актуальных навыков для города
-        public async Task<List<CompetenceShort>> GetActualCompetences(string town)
+        public async Task<List<CompetenceShort>> GetActualCompetences([FromForm]string town)
         {
             List<CompetenceShort> res = new List<CompetenceShort>();
 

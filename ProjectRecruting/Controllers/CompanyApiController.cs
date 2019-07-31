@@ -33,9 +33,9 @@ namespace ProjectRecruting.Controllers
 
         //[Authorize]
         [HttpPost("CreateCompany")]
-        public async Task<Company> CreateCompany([FromForm]Company company, [FromForm]IFormFile uploadedFile)
+        public async Task<Company> CreateCompany([FromForm]Company company, [FromForm]IFormFile[] uploadedFile)
         {
-           
+            //var file = HttpContext.Request.Form.Files;
 
             string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -56,11 +56,11 @@ namespace ProjectRecruting.Controllers
             //}
 
             Company newCompany = new Company(company.Name, company.Description, company.Number, company.Email);
-            if (uploadedFile != null)
+            if (uploadedFile != null && uploadedFile.Length > 0)
 
-                using (var binaryReader = new BinaryReader(uploadedFile.OpenReadStream()))
+                using (var binaryReader = new BinaryReader(uploadedFile[0].OpenReadStream()))
                 {
-                    newCompany.Image = binaryReader.ReadBytes((int)uploadedFile.Length);
+                    newCompany.Image = binaryReader.ReadBytes((int)uploadedFile[0].Length);
                 }
 
             _db.Companys.Add(newCompany);
@@ -74,7 +74,7 @@ namespace ProjectRecruting.Controllers
 
         [Authorize]
         [HttpPost]
-        public async Task<Company> ChangeCompany(Company company, IFormFile uploadedFile)
+        public async Task<Company> ChangeCompany([FromForm]Company company, [FromForm] IFormFile[] uploadedFile)
         {
             string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -102,7 +102,7 @@ namespace ProjectRecruting.Controllers
             //    Response.StatusCode = 404;
             //    return null;
             //}
-            var oldCompany = await Company.GetIfAccess(_db,userId,company.Id);
+            var oldCompany = await Company.GetIfAccess(_db, userId, company.Id);
 
             //var oldCompany = await _db.Companys.FirstOrDefaultAsync(x1 => x1.Id == company.Id);
             if (oldCompany == null)
@@ -111,10 +111,10 @@ namespace ProjectRecruting.Controllers
                 return null;
             }
             byte[] newImage = null;
-            if (uploadedFile != null)
-                using (var binaryReader = new BinaryReader(uploadedFile.OpenReadStream()))
+            if (uploadedFile != null && uploadedFile.Length > 0)
+                using (var binaryReader = new BinaryReader(uploadedFile[0].OpenReadStream()))
                 {
-                    newImage = binaryReader.ReadBytes((int)uploadedFile.Length);
+                    newImage = binaryReader.ReadBytes((int)uploadedFile[0].Length);
                 }
             oldCompany.ChangeData(company.Name, company.Description, company.Number, company.Email, company.Image);
             await _db.SaveChangesAsync();
@@ -124,7 +124,7 @@ namespace ProjectRecruting.Controllers
 
         [Authorize]
         [HttpPost]
-        public async Task<Project> CreateProject(Project project, IFormFileCollection uploads, string[] competences,string[] townNames)
+        public async Task<Project> CreateProject([FromForm]Project project, [FromForm]IFormFileCollection uploads, [FromForm]string[] competences, [FromForm]string[] townNames)
         {
             string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -155,7 +155,7 @@ namespace ProjectRecruting.Controllers
             await newProject.AddImagesToDb(_db, uploads);
             await newProject.AddCompetences(_db, competences);
 
-            var listTown=await Town.GetOrCreate(_db, townNames);
+            var listTown = await Town.GetOrCreate(_db, townNames);
             foreach (var i in listTown)
             {
                 _db.ProjectTowns.Add(new Models.Domain.ManyToMany.ProjectTown(i.Id, newProject.Id));
@@ -177,7 +177,7 @@ namespace ProjectRecruting.Controllers
 
         [Authorize]
         [HttpPost]
-        public async Task<bool> ChangeProject(Project project, IFormFileCollection uploads, int[] deleteImages, int[] competenceIds)
+        public async Task<bool> ChangeProject([FromForm]Project project, [FromForm]IFormFileCollection uploads, [FromForm] int[] deleteImages, [FromForm]int[] competenceIds)
         {
             string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -216,7 +216,7 @@ namespace ProjectRecruting.Controllers
         //меняет статус проекта на закрытый
         [Authorize]
         [HttpPost]
-        public async Task<bool> CloseProject(int projectId)//#TODO хз стоит ли объединять с CompliteProject в метод ChangeStatusProject
+        public async Task<bool> CloseProject([FromForm]int projectId)//#TODO хз стоит ли объединять с CompliteProject в метод ChangeStatusProject
         {
             string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -239,7 +239,7 @@ namespace ProjectRecruting.Controllers
         //меняет статус проекта на выполненный
         [Authorize]
         [HttpPost]
-        public async Task<bool> CompliteProject(int projectId)//#TODO хз стоит ли объединять с CloseProject в метод ChangeStatusProject
+        public async Task<bool> CompliteProject([FromForm]int projectId)//#TODO хз стоит ли объединять с CloseProject в метод ChangeStatusProject
         {
             string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -261,7 +261,7 @@ namespace ProjectRecruting.Controllers
 
         [Authorize]
         [HttpPost]
-        public async Task<bool> ApproveStudent(int projectId, string studentId)
+        public async Task<bool> ApproveStudent([FromForm]int projectId, [FromForm]string studentId)
         {
             string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -282,7 +282,7 @@ namespace ProjectRecruting.Controllers
 
         [Authorize]
         [HttpPost]
-        public async Task<bool> CancelStudent(int projectId, string studentId)
+        public async Task<bool> CancelStudent([FromForm]int projectId, [FromForm]string studentId)
         {
             string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -303,7 +303,7 @@ namespace ProjectRecruting.Controllers
 
 
         [Authorize]
-        public async Task<List<UserShort>> GetStudents(int projectId, StatusInProject status)
+        public async Task<List<UserShort>> GetStudents([FromForm]int projectId, [FromForm] StatusInProject status)
         {
 
             if (status != StatusInProject.Approved && status != StatusInProject.Canceled && status != StatusInProject.InProccessing)

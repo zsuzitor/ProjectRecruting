@@ -108,7 +108,7 @@ namespace ProjectRecruting.Controllers
         }
 
         [HttpPost("RefreshToken")]
-        public async Task RefreshToken(string refreshToken)//, string confirmPassword
+        public async Task RefreshToken([FromForm]string refreshToken)//, string confirmPassword
         {
             string userId = AuthJWT.GetCurentId(HttpContext, out int status);
            
