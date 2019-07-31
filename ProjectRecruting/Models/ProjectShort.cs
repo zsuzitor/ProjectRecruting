@@ -8,7 +8,7 @@ namespace ProjectRecruting.Models
     public class ProjectShort
     {
         public string Name { get; set; }
-        public int IdProject { get; set; }
+        public int ProjectId { get; set; }
         public StatusInProject Status { get; set; }
 
         public ProjectShort()
@@ -17,10 +17,10 @@ namespace ProjectRecruting.Models
         }
 
 
-        public ProjectShort(string name,int idProject):this()
+        public ProjectShort(string name,int projectId):this()
         {
             Name = name;
-            IdProject = idProject;
+            ProjectId = projectId;
         }
     }
 }

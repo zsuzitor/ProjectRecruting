@@ -58,8 +58,10 @@ namespace ProjectRecruting.Controllers
         //просмотреть список актуальных проектов для города #TODO надо подсвечивать куда подал заявку
         public async Task<List<ProjectShort>> GetActualProject(string town)
         {
+            string userId = AuthJWT.GetCurentId(HttpContext, out int status);
+
             List<ProjectShort> res = new List<ProjectShort>();
-            
+
             if (town == null)
             {
                 //выбрать все проекты независимо от города
@@ -70,7 +72,7 @@ namespace ProjectRecruting.Controllers
             if (townDb == null)
                 return res;
 
-            return await Project.GetActualShortEntityInTown(_db, townDb.Id);
+            return await Project.GetActualShortEntityInTown(_db, townDb.Id, userId);
 
 
 
@@ -81,7 +83,7 @@ namespace ProjectRecruting.Controllers
         public async Task<List<CompetenceShort>> GetActualCompetences(string town)
         {
             List<CompetenceShort> res = new List<CompetenceShort>();
-            
+
             if (town == null)
             {
                 //выбрать все проекты независимо от города
