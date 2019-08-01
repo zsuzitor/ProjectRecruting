@@ -12,14 +12,14 @@ namespace ProjectRecruting.Models.Domain
         public int Id { get; set; }
         //public int CompanyId { get; set; }
         //public Company Company { get; set; }
-        public byte[] Data { get; set; }
+        //public byte[] Data { get; set; }
 
         public int ProjectId { get; set; }
         public Project Project { get; set; }
 
         public Image()
         {
-            Data = null;
+           // Data = null;
         }
 
         public static List<byte[]> GetBytes(IFormFileCollection images)

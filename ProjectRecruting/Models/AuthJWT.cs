@@ -100,7 +100,7 @@ namespace ProjectRecruting.Models
                 return null;
             string token = AuthJWT.GenerateRefreshToken(10);
             await user.SetRefreshToken(db, token);
-            
+
             return new Tuple<string, string>(AuthJWT.GenerateMainToken(AuthJWT.GetIdentity(user)), token);
         }
 
@@ -135,11 +135,11 @@ namespace ProjectRecruting.Models
                 ValidateIssuer = false,
                 ValidateAudience = false
             };
-            return handler.ValidateToken(authorizationToken, validations, out  tokenSecure);
+            return handler.ValidateToken(authorizationToken, validations, out tokenSecure);
         }
 
 
-        public static string GetCurentId(HttpContext context,out int status)
+        public static string GetCurrentId(HttpContext context, out int status)
         {
             context.Request.Headers.TryGetValue("Authorization", out StringValues authorizationToken);
             status = 0;
@@ -148,16 +148,18 @@ namespace ProjectRecruting.Models
                 var claims = AuthJWT.DecodeToken(authorizationToken, out SecurityToken token);
                 return claims.Identity.Name;
             }
-            catch (Exception e)//#TODO просрочен
+            catch (SecurityTokenExpiredException)//#TODO просрочен
             {
                 status = 1;
+                var token=new JwtSecurityTokenHandler().ReadJwtToken(authorizationToken);
+                return token.Claims.FirstOrDefault(x1=>x1.Type== ClaimsIdentity.DefaultNameClaimType).Value;
             }
-             catch //#TODO изменен извне
+            catch (SecurityTokenValidationException)//#TODO изменен извне(\поломан\недопустим)
             {
                 status = 2;
             }
             return null;
         }
 
-        }
+    }
 }

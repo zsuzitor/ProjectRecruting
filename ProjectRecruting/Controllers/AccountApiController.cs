@@ -110,14 +110,19 @@ namespace ProjectRecruting.Controllers
         [HttpPost("RefreshToken")]
         public async Task RefreshToken([FromForm]string refreshToken)//, string confirmPassword
         {
-            string userId = AuthJWT.GetCurentId(HttpContext, out int status);
-           
-            if (status != 0 || userId == null)
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
+
+            if ((status != 0 && status != 1) || userId == null)
             {
                 Response.StatusCode = 401;
                 return;
             }
             var tokens = await AuthJWT.Refresh(_db, userId, refreshToken);
+            if (tokens == null)
+            {
+                Response.StatusCode = 401;
+                return;
+            }
             var response = new
             {
                 access_token = tokens.Item1,
@@ -125,7 +130,7 @@ namespace ProjectRecruting.Controllers
             };
 
             Response.ContentType = "application/json";
-            await Response.WriteAsync(JsonConvert.SerializeObject(tokens, new JsonSerializerSettings { Formatting = Formatting.Indented }));
+            await Response.WriteAsync(JsonConvert.SerializeObject(response, new JsonSerializerSettings { Formatting = Formatting.Indented }));
 
 
             //return status.ToString();
@@ -137,6 +142,17 @@ namespace ProjectRecruting.Controllers
         //public string Home()//, string confirmPassword
         //{
         //    var g = 10;
+        //    int g1 = "123455".GetHashCode();
+        //    int g2 = "1f23455".GetHashCode();
+        //    int g3 = "123sdf455".GetHashCode();
+        //    int g4 = "12345ff5".GetHashCode();
+        //    int g5 = "12345g5".GetHashCode();
+        //    int g6 = "12345s5".GetHashCode();
+        //    int g7 = "12345s5".GetHashCode();
+        //    int g8 = "123455".GetHashCode();
+        //    int g9 = "123455".GetHashCode();
+        //    int g10 = "123455".GetHashCode();
+
         //    return "12344";
         //}
 

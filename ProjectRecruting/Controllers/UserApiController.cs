@@ -27,9 +27,10 @@ namespace ProjectRecruting.Controllers
 
         //true-существующая запись обновлена, false-добавлена новая, null-сейчас не обрабатывается-произошла ошибка
         //оставить\обновить заявку пользователя на проект
-        public async Task<bool?> RequestStudent([FromForm]int projectId)
+        [HttpPost("ChangeStatusStudentInProject")]
+        public async Task<bool?> ChangeStatusStudentInProject([FromForm]int projectId,[FromForm]Models.StatusInProject newStatus)
         {
-            string userId = AuthJWT.GetCurentId(HttpContext, out int status);
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
 
             if (status != 0 || userId == null)
             {
@@ -37,29 +38,40 @@ namespace ProjectRecruting.Controllers
                 return null;
             }
             var project = await Project.Get(_db, projectId);
-            return await project.CreateChangeStatusUser(_db, Models.StatusInProject.InProccessing, userId);
+            if (project == null)
+            {
+                Response.StatusCode = 404;
+                return null;
+            }
+            return await project.CreateChangeStatusUser(_db, newStatus, userId);
         }
 
         //студент отзывает заявку
-        public async Task<bool?> CancelByStudent([FromForm]int projectId)
-        {
-            string userId = AuthJWT.GetCurentId(HttpContext, out int status);
+        //[HttpPost]
+        //public async Task<bool?> CancelByStudent([FromForm]int projectId)
+        //{
+        //    string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
 
+        //    if (status != 0 || userId == null)
+        //    {
+        //        Response.StatusCode = 401;
+        //        return null;
+        //    }
+        //    var project = await Project.Get(_db, projectId);
+        //    return await project.CreateChangeStatusUser(_db, Models.StatusInProject.CanceledByStudent, userId);
+        //}
+
+
+        //просмотреть список актуальных проектов для города #TODO надо подсвечивать куда подал заявку
+        [HttpGet("GetActualProject")]
+        public async Task<List<ProjectShort>> GetActualProject([FromForm]string town)
+        {
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
             if (status != 0 || userId == null)
             {
                 Response.StatusCode = 401;
                 return null;
             }
-            var project = await Project.Get(_db, projectId);
-            return await project.CreateChangeStatusUser(_db, Models.StatusInProject.CanceledByStudent, userId);
-        }
-
-
-        //просмотреть список актуальных проектов для города #TODO надо подсвечивать куда подал заявку
-        public async Task<List<ProjectShort>> GetActualProject([FromForm]string town)
-        {
-            string userId = AuthJWT.GetCurentId(HttpContext, out int status);
-
             List<ProjectShort> res = new List<ProjectShort>();
 
             if (town == null)
@@ -68,7 +80,7 @@ namespace ProjectRecruting.Controllers
                 return await Project.GetShortsData(_db, await Project.SortByActual(_db));
             }
             string townLower = town.ToLower().Trim();
-            var townDb = Town.GetByName(_db, townLower);
+            var townDb = await Town.GetByName(_db, townLower);
             if (townDb == null)
                 return res;
 
@@ -77,9 +89,15 @@ namespace ProjectRecruting.Controllers
 
 
         }
+        [HttpGet]
+        public async Task<Project> GetProject(int id)
+        {
+            return await Project.Get(_db, id);
+        }
 
 
         //список актуальных навыков для города
+        [HttpGet("GetActualCompetences")]
         public async Task<List<CompetenceShort>> GetActualCompetences([FromForm]string town)
         {
             List<CompetenceShort> res = new List<CompetenceShort>();
@@ -87,16 +105,16 @@ namespace ProjectRecruting.Controllers
             if (town == null)
             {
                 //выбрать все проекты независимо от города
-                return await Competence.GetShortsData(_db, await Competence.SortByActual(_db));
+                return await Competence.GetShortsData(_db, await Competence.GetActualIds(_db));
             }
             string townLower = town.ToLower().Trim();
-            var townDb = Town.GetByName(_db, townLower);
+            var townDb = await Town.GetByName(_db, townLower);
             if (townDb == null)
                 return res;
-            var actualListIds = await Competence.GetActualInTown(_db, townDb.Id);
+            return  await Competence.GetActualShortEntityInTown(_db, townDb.Id);
 
             //#TODO сломает всю сортировку
-            return await Competence.GetShortsData(_db, actualListIds);
+            //return await Competence.GetShortsData(_db, actualListIds);
 
         }
 

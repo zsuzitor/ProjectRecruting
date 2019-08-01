@@ -7,12 +7,14 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models;
 using ProjectRecruting.Models.Domain;
@@ -25,19 +27,21 @@ namespace ProjectRecruting.Controllers
     {
         readonly ApplicationDbContext _db = null;
         readonly UserManager<ApplicationUser> _userManager = null;
-        public CompanyApiController(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
+        IHostingEnvironment _appEnvironment { get; set; }
+        public CompanyApiController(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IHostingEnvironment appEnvironment)
         {
             _db = db;
             _userManager = userManager;
+            _appEnvironment = appEnvironment;
         }
 
         //[Authorize]
         [HttpPost("CreateCompany")]
-        public async Task<Company> CreateCompany([FromForm]Company company, [FromForm]IFormFile[] uploadedFile)
+        public async Task<string> CreateCompany([FromForm]Company company, [FromForm]IFormFile[] uploadedFile = null)
         {
             //var file = HttpContext.Request.Form.Files;
 
-            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
             {
                 Response.StatusCode = 401;
@@ -56,27 +60,39 @@ namespace ProjectRecruting.Controllers
             //}
 
             Company newCompany = new Company(company.Name, company.Description, company.Number, company.Email);
-            if (uploadedFile != null && uploadedFile.Length > 0)
 
-                using (var binaryReader = new BinaryReader(uploadedFile[0].OpenReadStream()))
-                {
-                    newCompany.Image = binaryReader.ReadBytes((int)uploadedFile[0].Length);
-                }
+
+            //using (var binaryReader = new BinaryReader(uploadedFile[0].OpenReadStream()))
+            //{
+            //    newCompany.Image = binaryReader.ReadBytes((int)uploadedFile[0].Length);
+            //}
 
             _db.Companys.Add(newCompany);
             await _db.SaveChangesAsync();
+            //if (uploadedFile != null && uploadedFile.Length > 0)
+            //{
+            //    string path = "/images/uploads/company_" + newCompany.Id + "_mainimage";// + uploadedFile[0].FileName;
+            //    // сохраняем файл в папку Files в каталоге wwwroot
+            //    using (var fileStream = new FileStream(_appEnvironment.WebRootPath + path, FileMode.Create))
+            //    {
+            //        await uploadedFile[0].CopyToAsync(fileStream);
+            //    }
+
+            //}
+            await newCompany.SetImage(uploadedFile, _appEnvironment);
 
             _db.CompanyUsers.Add(new Models.Domain.ManyToMany.CompanyUser(userId, newCompany.Id));
             await _db.SaveChangesAsync();
-            return newCompany;
+            //return newCompany;
+            return JsonConvert.SerializeObject(new { newCompany.Id, newCompany.Name }, new JsonSerializerSettings { Formatting = Formatting.Indented });
         }
 
 
-        [Authorize]
+        // [Authorize]
         [HttpPost]
-        public async Task<Company> ChangeCompany([FromForm]Company company, [FromForm] IFormFile[] uploadedFile)
+        public async Task<Company> ChangeCompany([FromForm]Company company, [FromForm] IFormFile[] uploadedFile = null)
         {
-            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
             {
                 Response.StatusCode = 401;
@@ -110,23 +126,32 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return null;
             }
-            byte[] newImage = null;
-            if (uploadedFile != null && uploadedFile.Length > 0)
-                using (var binaryReader = new BinaryReader(uploadedFile[0].OpenReadStream()))
-                {
-                    newImage = binaryReader.ReadBytes((int)uploadedFile[0].Length);
-                }
-            oldCompany.ChangeData(company.Name, company.Description, company.Number, company.Email, company.Image);
+            //byte[] newImage = null;
+            await oldCompany.SetImage(uploadedFile, _appEnvironment);
+            //if (uploadedFile != null && uploadedFile.Length > 0)
+            //{
+            //    string path = "/images/uploads/company_" + oldCompany.Id + "_mainimage";// + uploadedFile[0].FileName;
+            //    // сохраняем файл в папку Files в каталоге wwwroot
+            //    using (var fileStream = new FileStream(_appEnvironment.WebRootPath + path, FileMode.Create))
+            //    {
+            //        await uploadedFile[0].CopyToAsync(fileStream);
+            //    }
+            //    //using (var binaryReader = new BinaryReader(uploadedFile[0].OpenReadStream()))
+            //    //{
+            //    //    newImage = binaryReader.ReadBytes((int)uploadedFile[0].Length);
+            //    //}
+            //}
+            oldCompany.ChangeData(company.Name, company.Description, company.Number, company.Email);//, company.Image);
             await _db.SaveChangesAsync();
             return oldCompany;
         }
 
 
-        [Authorize]
-        [HttpPost]
-        public async Task<Project> CreateProject([FromForm]Project project, [FromForm]IFormFileCollection uploads, [FromForm]string[] competences, [FromForm]string[] townNames)
+        // [Authorize]
+        [HttpPost("CreateProject")]
+        public async Task<Project> CreateProject([FromForm]Project project, [FromForm]string[] competences, [FromForm]string[] townNames, [FromForm]IFormFileCollection uploads = null)
         {
-            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
             {
                 Response.StatusCode = 401;
@@ -152,7 +177,7 @@ namespace ProjectRecruting.Controllers
             Project newProject = new Project(project.Name, project.Description, project.Payment, project.CompanyId);
             _db.Projects.Add(newProject);
             await _db.SaveChangesAsync();
-            await newProject.AddImagesToDb(_db, uploads);
+            await newProject.AddImagesToDbSystem(_db, _appEnvironment, uploads);
             await newProject.AddCompetences(_db, competences);
 
             var listTown = await Town.GetOrCreate(_db, townNames);
@@ -175,11 +200,11 @@ namespace ProjectRecruting.Controllers
 
         }
 
-        [Authorize]
+        // [Authorize]
         [HttpPost]
         public async Task<bool> ChangeProject([FromForm]Project project, [FromForm]IFormFileCollection uploads, [FromForm] int[] deleteImages, [FromForm]int[] competenceIds)
         {
-            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
             {
                 Response.StatusCode = 401;
@@ -205,7 +230,7 @@ namespace ProjectRecruting.Controllers
             oldProj.ChangeData(project.Name, project.Description, project.Payment);
             await _db.SaveChangesAsync();
 
-            await oldProj.AddImagesToDb(_db, uploads);
+            await oldProj.AddImagesToDbSystem(_db, _appEnvironment, uploads);
             await Project.DeleteImagesFromDb(_db, oldProj.Id, deleteImages);
             await oldProj.DeleteCompetences(_db, competenceIds);
 
@@ -214,34 +239,34 @@ namespace ProjectRecruting.Controllers
         }
 
         //меняет статус проекта на закрытый
-        [Authorize]
-        [HttpPost]
-        public async Task<bool> CloseProject([FromForm]int projectId)//#TODO хз стоит ли объединять с CompliteProject в метод ChangeStatusProject
-        {
-            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
-            if (statusId != 0 || userId == null)
-            {
-                Response.StatusCode = 401;
-                return false;
-            }
+        ////[Authorize]
+        //[HttpPost]
+        //public async Task<bool> CloseProject([FromForm]int projectId)//#TODO хз стоит ли объединять с CompliteProject в метод ChangeStatusProject
+        //{
+        //    string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
+        //    if (statusId != 0 || userId == null)
+        //    {
+        //        Response.StatusCode = 401;
+        //        return false;
+        //    }
 
-            var proj = await ApplicationUser.CheckAccessEditProject(_db, projectId, userId);
-            if (proj == null)
-            {
-                Response.StatusCode = 404;
-                return false;
-            }
-            await proj.SetStatus(_db, StatusProject.Closed);
-            return true;
-        }
+        //    var proj = await ApplicationUser.CheckAccessEditProject(_db, projectId, userId);
+        //    if (proj == null)
+        //    {
+        //        Response.StatusCode = 404;
+        //        return false;
+        //    }
+        //    await proj.SetStatus(_db, StatusProject.Closed);
+        //    return true;
+        //}
 
 
         //меняет статус проекта на выполненный
-        [Authorize]
+        // [Authorize]
         [HttpPost]
-        public async Task<bool> CompliteProject([FromForm]int projectId)//#TODO хз стоит ли объединять с CloseProject в метод ChangeStatusProject
+        public async Task<bool> ChangeStatusProject([FromForm]int projectId, [FromForm]StatusProject newStatus)//#TODO хз стоит ли объединять с CloseProject в метод ChangeStatusProject
         {
-            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
             {
                 Response.StatusCode = 401;
@@ -254,16 +279,16 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return false;
             }
-            await proj.SetStatus(_db, StatusProject.Complited);
+            await proj.SetStatus(_db, newStatus);
             return true;
         }
 
 
-        [Authorize]
+        // [Authorize]
         [HttpPost]
         public async Task<bool> ApproveStudent([FromForm]int projectId, [FromForm]string studentId)
         {
-            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
             {
                 Response.StatusCode = 401;
@@ -280,11 +305,11 @@ namespace ProjectRecruting.Controllers
             return await proj.ChangeStatusUser(_db, StatusInProject.Approved, studentId);
         }
 
-        [Authorize]
+        // [Authorize]
         [HttpPost]
         public async Task<bool> CancelStudent([FromForm]int projectId, [FromForm]string studentId)
         {
-            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
             {
                 Response.StatusCode = 401;
@@ -302,14 +327,14 @@ namespace ProjectRecruting.Controllers
         }
 
 
-        [Authorize]
+        //[Authorize]
         public async Task<List<UserShort>> GetStudents([FromForm]int projectId, [FromForm] StatusInProject status)
         {
 
             if (status != StatusInProject.Approved && status != StatusInProject.Canceled && status != StatusInProject.InProccessing)
                 return null;
 
-            string userId = AuthJWT.GetCurentId(HttpContext, out int statusId);
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
             {
                 Response.StatusCode = 401;

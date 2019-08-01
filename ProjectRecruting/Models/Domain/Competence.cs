@@ -41,10 +41,17 @@ namespace ProjectRecruting.Models.Domain
         //составляем запрос
         public static IQueryable<Competence> GetActualQueryEntityInTown(ApplicationDbContext db, int townId)
         {
+            //var tre = db.ProjectTowns.Where(x1 => x1.TownId == townId).Join(db.CompetenceProjects, x1 => x1.ProjectId, x2 => x2.ProjectId, (x1, x2) => x2.CompetenceId).
+            //      GroupBy(x1 => x1)
+            //    .Join(db.Competences, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { group = x1, entity = x2 }).ToList();
+            //   //OrderBy(x1 => x1.group.Count()).Select(x1 => x1.entity).ToList();
+
+
+
             return db.ProjectTowns.Where(x1 => x1.TownId == townId).Join(db.CompetenceProjects, x1 => x1.ProjectId, x2 => x2.ProjectId, (x1, x2) => x2.CompetenceId).
                  GroupBy(x1 => x1)
                .Join(db.Competences, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { group = x1, entity = x2 }).
-               OrderBy(x1 => x1.group.Count()).Select(x1 => x1.entity);
+               OrderByDescending(x1 => x1.group.Count()).Select(x1 => x1.entity);
 
             //return db.CompetenceProjects.Join(db.ProjectTowns, x1 => x1.ProjectId, x2 => x2.ProjectId, (x1, x2) => new { competenceId = x1.CompetenceId, townId = x2.TownId }).//#TODO #join
             //   Where(x1=>x1.townId==townId).
@@ -52,6 +59,16 @@ namespace ProjectRecruting.Models.Domain
             //   .Join(db.Competences, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { group = x1, entity = x2 }).
             //   OrderBy(x1 => x1.group.Count()).Select(x1 => x1.entity);
         }
+
+        //public async static Task<List<CompetenceShort>> GetActualEntityInTown(ApplicationDbContext db, int townId)
+        //{
+        //    var projIds = await db.ProjectTowns.Where(x1 => x1.TownId == townId).Select(x1 => x1.ProjectId).Distinct().ToListAsync();
+        //    return await db.CompetenceProjects.Where(x1 => projIds.Contains(x1.ProjectId)).GroupBy(x1 => x1.CompetenceId).OrderBy(x1 => x1.Count()).Select(x1 => x1.Key).
+        //        Join(db.Competences, x1 => x1, x2 => x2.Id, (x1, x2) => x2).Select(x1 => new CompetenceShort(x1.Name, x1.Id)).ToListAsync();
+
+        //}
+
+
         //получаем полные данные
         public async static Task<List<Competence>> GetActualEntityInTown(ApplicationDbContext db, int townId)
         {
@@ -63,10 +80,10 @@ namespace ProjectRecruting.Models.Domain
             return await Competence.GetActualQueryEntityInTown(db, townId).Select(x1 => new CompetenceShort(x1.Name, x1.Id)).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
         }
 
-        public async static Task<List<int>> SortByActual(ApplicationDbContext db)
-        {
-            return await db.CompetenceProjects.GroupBy(x1 => x1.CompetenceId).OrderBy(x1 => x1.Count()).Select(x1 => x1.Key).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
-        }
+        //public async static Task<List<int>> SortByActual(ApplicationDbContext db)
+        //{
+        //    return await db.CompetenceProjects.GroupBy(x1 => x1.CompetenceId).OrderBy(x1 => x1.Count()).Select(x1 => x1.Key).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
+        //}
 
         public async static Task<List<int>> GetActualIds(ApplicationDbContext db)
         {
@@ -88,17 +105,23 @@ namespace ProjectRecruting.Models.Domain
         //просто получение, не обязательно актуальных
         public async static Task<List<int>> GetByTown(ApplicationDbContext db, int townId)
         {
-            var projIds = await db.ProjectTowns.Where(x1 => x1.TownId == townId).Select(x1 => x1.ProjectId).Distinct().ToListAsync();
-            return await db.CompetenceProjects.Where(x1 => projIds.Contains(x1.ProjectId)).Select(x1 => x1.Id).ToListAsync();
+            return await db.ProjectTowns.Where(x1 => x1.TownId == townId).Select(x1 => x1.ProjectId).Distinct().
+                Join(db.CompetenceProjects, x1 => x1, x2 => x2.ProjectId, (x1, x2) => x2.CompetenceId).ToListAsync();
+
+            //var projIds = await db.ProjectTowns.Where(x1 => x1.TownId == townId).Select(x1 => x1.ProjectId).Distinct().ToListAsync();
+            //return await db.CompetenceProjects.Where(x1 => projIds.Contains(x1.ProjectId)).Select(x1 => x1.Id).ToListAsync();
 
         }
 
         public async static Task<List<int>> GetActualInTown(ApplicationDbContext db, int townId)
         {
-            var projIds = await db.ProjectTowns.Where(x1 => x1.TownId == townId).Select(x1 => x1.ProjectId).Distinct().ToListAsync();
-            return await db.CompetenceProjects.Where(x1 => projIds.Contains(x1.ProjectId)).GroupBy(x1 => x1.CompetenceId).OrderBy(x1 => x1.Count()).Select(x1 => x1.Key).ToListAsync();
+            return await Competence.GetActualQueryEntityInTown(db, townId).Select(x1 => x1.Id).ToListAsync();
+
+            //var projIds = await db.ProjectTowns.Where(x1 => x1.TownId == townId).Select(x1 => x1.ProjectId).Distinct().ToListAsync();
+            //return await db.CompetenceProjects.Where(x1 => projIds.Contains(x1.ProjectId)).GroupBy(x1 => x1.CompetenceId).OrderBy(x1 => x1.Count()).Select(x1 => x1.Key).ToListAsync();
 
         }
+
 
         //public async static Task<List<int>> GetActualInTown(ApplicationDbContext db, int townId)
         //{

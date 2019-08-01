@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models.Domain.ManyToMany;
@@ -23,7 +24,7 @@ namespace ProjectRecruting.Models.Domain
         //заявки можнпо подавать только если проект не начат или начат но не закончен
         public StatusProject Status { get; set; }
 
-
+        [Required(ErrorMessage = "Не указан id компании")]
         public int CompanyId { get; set; }
         public Company Company { get; set; }
 
@@ -38,6 +39,7 @@ namespace ProjectRecruting.Models.Domain
         public Project()
         {
             Status = StatusProject.NotStarted;
+            Payment = null;
         }
 
         public Project(string name, string description, bool? payment, int companyId) : this()
@@ -50,16 +52,43 @@ namespace ProjectRecruting.Models.Domain
 
 
         //НЕ загрузит их в сущность, только добавит в бд
-        public async Task<List<Image>> AddImagesToDb(ApplicationDbContext db, IFormFileCollection images)
+        public async Task<List<Image>> AddImagesToDbSystem(ApplicationDbContext db, IHostingEnvironment appEnvironment, IFormFileCollection images)
         {
+            //Tuple<>
             List<Image> res = new List<Image>();
-            var imgs = Image.GetBytes(images);
-            foreach (var i in imgs)
+            //var imgs = Image.GetBytes(images);
+            if (images != null && images.Count > 0)
             {
-                res.Add(new Image() { ProjectId = this.Id, Data = i });
+
+                foreach (var i in images)
+                    res.Add(new Image() { ProjectId = this.Id });
+                db.Images.AddRange(res);
+                await db.SaveChangesAsync();
+
+                for (var i = 0; i < images.Count; ++i)
+                {
+                    string path = "/images/uploads/project_" + this.Id + "_" + res[i].Id;// + uploadedFile[0].FileName;
+                                                                                         // сохраняем файл в папку Files в каталоге wwwroot
+                    using (var fileStream = new FileStream(appEnvironment.WebRootPath + path, FileMode.Create))
+                    {
+                        await images[i].CopyToAsync(fileStream);
+                    }
+                }
+
+
+                //using (var binaryReader = new BinaryReader(uploadedFile[0].OpenReadStream()))
+                //{
+                //    newImage = binaryReader.ReadBytes((int)uploadedFile[0].Length);
+                //}
             }
-            db.Images.AddRange(res);
-            await db.SaveChangesAsync();
+
+
+            //foreach (var i in imgs)
+            //{
+            //    res.Add(new Image() { ProjectId = this.Id, Data = i });
+            //}
+            //db.Images.AddRange(res);
+            //await db.SaveChangesAsync();
             return res;
         }
 
@@ -140,9 +169,9 @@ namespace ProjectRecruting.Models.Domain
         //без валидации
         public async Task<List<Competence>> AddCompetences(ApplicationDbContext db, string[] competences)
         {
-            List<Competence> res = new List<Competence>();
+            //List<Competence> res = new List<Competence>();
             if (competences == null || competences.Length == 0)
-                return res;
+                return new List<Competence>();
             var competencesList = competences.Select(x1 => x1.ToLower().Trim()).ToList();
             var existsCompetences = await db.Competences.Where(x1 => competences.Contains(x1.Name)).ToListAsync();
             //db.CompetenceProjects.Where(x1=> existsCompetences.Contains(x1));
@@ -169,7 +198,7 @@ namespace ProjectRecruting.Models.Domain
             db.CompetenceProjects.AddRange(forAddedRelation);
 
             await db.SaveChangesAsync();
-            return res;
+            return needAdded;
         }
 
         //без валидации
@@ -231,11 +260,54 @@ namespace ProjectRecruting.Models.Domain
         //составляем запрос
         public static IQueryable<Project> GetActualQueryEntityInTown(ApplicationDbContext db, int townId)
         {
-            return db.ProjectUsers.//Select(x1 => x1.ProjectId).
-               GroupBy(x1 => x1.ProjectId)
-               .Join(db.ProjectTowns, x1 => x1.Key, x2 => x2.ProjectId, (x1, x2) => new { group = x1, town = x2 }).Where(x1 => x1.town.TownId == townId).//#TODO #join тут вроде норм из за where
-               Join(db.Projects, x1 => x1.group.Key, x2 => x2.Id, (x1, x2) => new { group = x1.group, entity = x2 }).
-               OrderBy(x1 => x1.group.Count()).Select(x1 => x1.entity);
+            //проекты города
+            //var projsId=db.ProjectTowns.Where(x1 => x1.TownId == townId).ToList();
+            //db.ProjectUsers.Where()
+
+            //         var asd = db.ProjectTowns.Where(x1 => x1.TownId == townId).GroupJoin(
+            //      db.ProjectUsers,
+            //      x1 => x1.ProjectId,
+            //      x2 => x2.ProjectId,
+            //      (x, y) => new { projId = x.ProjectId, prUser = y })
+            //.SelectMany(
+            //      x => x.prUser.DefaultIfEmpty(),
+            //      (x, y) => new { projId = x.projId, userId = y.UserId, status = y.Status }).ToList();//.GroupBy(x1 => x1.proj.Id).OrderBy(x1 => x1.Count()).Select(x1=>x1.).ToList();
+
+
+            return db.ProjectTowns.Where(x1 => x1.TownId == townId).
+                GroupJoin(db.ProjectUsers,x1 => x1.ProjectId,x2 => x2.ProjectId,(x, y) => new { proj = x, prUser = y }).
+                SelectMany(x => x.prUser.DefaultIfEmpty(),(x, y) => x.proj.ProjectId).GroupBy(x1 => x1).Select(x1 => new { projId = x1.Key, count = x1.Count() }).
+                Join(db.Projects, x1 => x1.projId, x2 => x2.Id, (x1, x2) => new { proj = x2, count = x1.count }).
+                OrderByDescending(x1 => x1.count).Select(x1 => x1.proj);
+
+            //return null;
+
+
+            //        var asd = db.ProjectTowns.Where(x1 => x1.TownId == townId).Join(db.Projects, x1 => x1.ProjectId, x2 => x2.Id, (x1, x2) => x2).GroupJoin(
+            //      db.ProjectUsers,
+            //      x1 => x1.Id,
+            //      x2 => x2.ProjectId,
+            //      (x, y) => new { proj = x, prUser = y })
+            //.SelectMany(
+            //      x => x.prUser.DefaultIfEmpty(),
+            //      (x, y) => new { proj = x.proj, userId = y.UserId, status = y.Status }).ToList();//.GroupBy(x1 => x1.proj.Id).OrderBy(x1 => x1.Count()).Select(x1=>x1.).ToList();
+
+
+            //db.ProjectTowns.Where(x1=>x1.TownId==townId).Join(db.Projects,x1=>x1.ProjectId,x2=>x2.Id,(x1,x2)=>x2)
+
+            //return db.ProjectUsers.//Select(x1 => x1.ProjectId).
+            //  GroupBy(x1 => x1.ProjectId)
+            //  .Join(db.ProjectTowns, x1 => x1.Key, x2 => x2.ProjectId, (x1, x2) => new { group = x1, town = x2 }).Where(x1 => x1.town.TownId == townId).//#TODO #join тут вроде норм из за where
+            //  Join(db.Projects, x1 => x1.group.Key, x2 => x2.Id, (x1, x2) => new { group = x1.group, entity = x2 }).
+            //  OrderBy(x1 => x1.group.Count()).Select(x1 => x1.entity);
+
+
+
+            //return db.ProjectUsers.//Select(x1 => x1.ProjectId).
+            //   GroupBy(x1 => x1.ProjectId)
+            //   .Join(db.ProjectTowns, x1 => x1.Key, x2 => x2.ProjectId, (x1, x2) => new { group = x1, town = x2 }).Where(x1 => x1.town.TownId == townId).//#TODO #join тут вроде норм из за where
+            //   Join(db.Projects, x1 => x1.group.Key, x2 => x2.Id, (x1, x2) => new { group = x1.group, entity = x2 }).
+            //   OrderBy(x1 => x1.group.Count()).Select(x1 => x1.entity);
         }
         //получаем полные данные
         public async static Task<List<Project>> GetActualEntityInTown(ApplicationDbContext db, int townId)
