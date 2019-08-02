@@ -34,8 +34,7 @@ namespace ProjectRecruting.Controllers
         [HttpPost("Login")]
         public async Task Login([FromForm]string username, [FromForm]string password)
         {
-            //var username = Request.Form["username"];
-            //var password = Request.Form["password"];
+
             var user = await ApplicationUser.LoginGet(_userManager, username, password);
             if (user == null)
             {
@@ -69,10 +68,6 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 400;
                 return;
             }
-
-            // var username = Request.Form["username"];
-            //var password = Request.Form["password"];
-
 
             var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -141,17 +136,7 @@ namespace ProjectRecruting.Controllers
         //[HttpGet("Home")]
         //public string Home()//, string confirmPassword
         //{
-        //    var g = 10;
-        //    int g1 = "123455".GetHashCode();
-        //    int g2 = "1f23455".GetHashCode();
-        //    int g3 = "123sdf455".GetHashCode();
-        //    int g4 = "12345ff5".GetHashCode();
-        //    int g5 = "12345g5".GetHashCode();
-        //    int g6 = "12345s5".GetHashCode();
-        //    int g7 = "12345s5".GetHashCode();
-        //    int g8 = "123455".GetHashCode();
-        //    int g9 = "123455".GetHashCode();
-        //    int g10 = "123455".GetHashCode();
+
 
         //    return "12344";
         //}

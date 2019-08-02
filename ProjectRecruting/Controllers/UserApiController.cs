@@ -28,7 +28,7 @@ namespace ProjectRecruting.Controllers
         //true-существующая запись обновлена, false-добавлена новая, null-сейчас не обрабатывается-произошла ошибка
         //оставить\обновить заявку пользователя на проект
         [HttpPost("ChangeStatusStudentInProject")]
-        public async Task<bool?> ChangeStatusStudentInProject([FromForm]int projectId,[FromForm]Models.StatusInProject newStatus)
+        public async Task<bool?> ChangeStatusStudentInProject([FromForm]int projectId, [FromForm]Models.StatusInProject newStatus)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
 
@@ -46,51 +46,36 @@ namespace ProjectRecruting.Controllers
             return await project.CreateChangeStatusUser(_db, newStatus, userId);
         }
 
-        //студент отзывает заявку
-        //[HttpPost]
-        //public async Task<bool?> CancelByStudent([FromForm]int projectId)
-        //{
-        //    string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
-
-        //    if (status != 0 || userId == null)
-        //    {
-        //        Response.StatusCode = 401;
-        //        return null;
-        //    }
-        //    var project = await Project.Get(_db, projectId);
-        //    return await project.CreateChangeStatusUser(_db, Models.StatusInProject.CanceledByStudent, userId);
-        //}
-
 
         //просмотреть список актуальных проектов для города #TODO надо подсвечивать куда подал заявку
         [HttpGet("GetActualProject")]
         public async Task<List<ProjectShort>> GetActualProject([FromForm]string town)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
-            if (status != 0 || userId == null)
-            {
-                Response.StatusCode = 401;
-                return null;
-            }
+            //if (status != 0 || userId == null)
+            //{
+            //    Response.StatusCode = 401;
+            //    return null;
+            //}
             List<ProjectShort> res = new List<ProjectShort>();
 
-            if (town == null)
+            int? townId = null;
+            if (town != null)
             {
-                //выбрать все проекты независимо от города
-                return await Project.GetShortsData(_db, await Project.SortByActual(_db));
+                string townLower = town.ToLower().Trim();
+                var townDb = await Town.GetByName(_db, townLower);
+                if (townDb == null)
+                    return res;
+                townId = townDb.Id;
             }
-            string townLower = town.ToLower().Trim();
-            var townDb = await Town.GetByName(_db, townLower);
-            if (townDb == null)
-                return res;
-
-            return await Project.GetActualShortEntityInTown(_db, townDb.Id, userId);
+            
+            return await Project.GetActualShortEntityInTown(_db, townId, userId);
 
 
 
         }
-        [HttpGet]
-        public async Task<Project> GetProject(int id)
+        [HttpGet("GetProject")]
+        public async Task<Project> GetProject([FromForm]int id)
         {
             return await Project.Get(_db, id);
         }
@@ -111,13 +96,61 @@ namespace ProjectRecruting.Controllers
             var townDb = await Town.GetByName(_db, townLower);
             if (townDb == null)
                 return res;
-            return  await Competence.GetActualShortEntityInTown(_db, townDb.Id);
+            return await Competence.GetActualShortEntityInTown(_db, townDb.Id);
 
-            //#TODO сломает всю сортировку
-            //return await Competence.GetShortsData(_db, actualListIds);
 
         }
 
+
+        [HttpGet("GetProjectsCompany")]
+        public async Task<List<Project>> GetProjectsCompany([FromForm]int companyId, [FromForm]int?townId)
+        {
+            return await Company.GetProjectsByActual(_db,companyId,townId);
+
+        }
+
+
+        [HttpGet("GetUserCompanys")]
+        public async Task<List<Company>> GetUserCompanys()
+        {
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
+            if (status != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return null;
+            }
+            return await ApplicationUser.GetUserCompanys(_db, userId);
+
+        }
+
+        //проекты за которые пользователь отвечает
+        [HttpGet("GetUserResponsibilityProjects")]
+        public async Task<List<Company>> GetUserResponsibilityProjects()
+        {
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
+            if (status != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return null;
+            }
+            return await ApplicationUser.GetUserCompanys(_db, userId);
+
+        }
+
+
+        [HttpGet("GetUserRequests")]
+        public async Task<List<Project>> GetUserRequests([FromForm] StatusInProject statusInProject)
+        {
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
+            if (status != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return null;
+            }
+           
+            return await ApplicationUser.GetUserRequests(_db, userId,statusInProject);
+
+        }
 
     }
 }

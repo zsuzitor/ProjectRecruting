@@ -74,5 +74,31 @@ namespace ProjectRecruting.Models.Domain
             }
         }
 
+
+        public async static Task<List<Project>> GetProjectsByActual(ApplicationDbContext db, int companyId, int? townId)
+        {
+            return await Project.GetActualQueryEntityInTown(db, townId).Where(x1 => x1.CompanyId == companyId).ToListAsync();
+        }
+
+        public async Task<bool> AddHeadUser(ApplicationDbContext db, string userId)
+        {
+            var userRelation = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.UserId == userId);
+            if (userRelation != null)
+                return false;
+            db.CompanyUsers.Add(new Models.Domain.ManyToMany.CompanyUser(userId, this.Id));
+            await db.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> DeleteHeadUser(ApplicationDbContext db, string userId)
+        {
+            var userRelation = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.UserId == userId);
+            if (userRelation == null)
+                return false;
+            db.CompanyUsers.Remove(userRelation);
+            await db.SaveChangesAsync();
+            return true;
+        }
+
     }
 }

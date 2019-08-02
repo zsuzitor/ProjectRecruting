@@ -41,7 +41,7 @@ namespace ProjectRecruting.Data
             .HasOne(x => x.Company)
             .WithMany(x => x.Projects);
 
-            
+
 
             modelBuilder.Entity<ProjectUser>()
              .HasOne(x => x.Project)

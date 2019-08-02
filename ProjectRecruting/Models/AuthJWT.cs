@@ -26,23 +26,11 @@ namespace ProjectRecruting.Models
         {
             return new SymmetricSecurityKey(Encoding.ASCII.GetBytes(KEY));
         }
-        //private List<UserShort> people = new List<UserShort>
-        //{
-        //    new UserShort {Name="admin@gmail.com", IdUser="12345", Password = "admin" },
-        //    new UserShort {Name="admin@gmail.com", IdUser="12345", Password = "admin" },
-        //};
+
 
         public async static Task<ClaimsIdentity> GetIdentity(string username, string password, UserManager<ApplicationUser> userManager)
         {
             var user = await ApplicationUser.LoginGet(userManager, username, password);
-
-            //var user = await userManager.FindByNameAsync(username);
-            //if (user == null)
-            //    return null;
-
-            //var passwordOK = await userManager.CheckPasswordAsync(user, password);
-            //if (!passwordOK)
-            //    return null;
 
             return AuthJWT.GetIdentity(user);
 
@@ -148,15 +136,19 @@ namespace ProjectRecruting.Models
                 var claims = AuthJWT.DecodeToken(authorizationToken, out SecurityToken token);
                 return claims.Identity.Name;
             }
-            catch (SecurityTokenExpiredException)//#TODO просрочен
+            catch (SecurityTokenExpiredException)//просрочен
             {
                 status = 1;
-                var token=new JwtSecurityTokenHandler().ReadJwtToken(authorizationToken);
-                return token.Claims.FirstOrDefault(x1=>x1.Type== ClaimsIdentity.DefaultNameClaimType).Value;
+                var token = new JwtSecurityTokenHandler().ReadJwtToken(authorizationToken);
+                return token.Claims.FirstOrDefault(x1 => x1.Type == ClaimsIdentity.DefaultNameClaimType).Value;
             }
-            catch (SecurityTokenValidationException)//#TODO изменен извне(\поломан\недопустим)
+            catch (SecurityTokenValidationException)//изменен извне(\поломан\недопустим)
             {
                 status = 2;
+            }
+            catch (Exception)//все остальное, должно быть в конце
+            {
+                status = 3;
             }
             return null;
         }

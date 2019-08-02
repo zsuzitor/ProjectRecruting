@@ -31,11 +31,11 @@ namespace ProjectRecruting.Models.Domain
             return await db.Towns.FirstOrDefaultAsync(x1 => x1.Name == name);
         }
 
-        public async static Task<List<Town>> GetOrCreate(ApplicationDbContext db, string[] townNames)
+        public async static Task<List<Town>> GetOrCreate(ApplicationDbContext db, List<string> townNames)
         {
-            if (townNames == null || townNames.Length == 0)
+            if (townNames == null || townNames.Count == 0)
                 return new List<Town>();
-            for (int i=0;i< townNames.Length;++i)
+            for (int i=0;i< townNames.Count;++i)
             {
                 townNames[i] = townNames[i].ToLower().Trim();
             }

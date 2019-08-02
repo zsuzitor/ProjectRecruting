@@ -53,32 +53,15 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return null;
             }
-            //if (string.IsNullOrWhiteSpace(userId))
-            //{
-            //    Response.StatusCode = 404;
-            //    return null;
-            //}
+
 
             Company newCompany = new Company(company.Name, company.Description, company.Number, company.Email);
 
 
-            //using (var binaryReader = new BinaryReader(uploadedFile[0].OpenReadStream()))
-            //{
-            //    newCompany.Image = binaryReader.ReadBytes((int)uploadedFile[0].Length);
-            //}
 
             _db.Companys.Add(newCompany);
             await _db.SaveChangesAsync();
-            //if (uploadedFile != null && uploadedFile.Length > 0)
-            //{
-            //    string path = "/images/uploads/company_" + newCompany.Id + "_mainimage";// + uploadedFile[0].FileName;
-            //    // сохраняем файл в папку Files в каталоге wwwroot
-            //    using (var fileStream = new FileStream(_appEnvironment.WebRootPath + path, FileMode.Create))
-            //    {
-            //        await uploadedFile[0].CopyToAsync(fileStream);
-            //    }
 
-            //}
             await newCompany.SetImage(uploadedFile, _appEnvironment);
 
             _db.CompanyUsers.Add(new Models.Domain.ManyToMany.CompanyUser(userId, newCompany.Id));
@@ -89,7 +72,7 @@ namespace ProjectRecruting.Controllers
 
 
         // [Authorize]
-        [HttpPost]
+        [HttpPost("ChangeCompany")]
         public async Task<Company> ChangeCompany([FromForm]Company company, [FromForm] IFormFile[] uploadedFile = null)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
@@ -107,17 +90,7 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return null;
             }
-            //if (string.IsNullOrWhiteSpace(userId))
-            //{
-            //    Response.StatusCode = 404;
-            //    return null;
-            //}
-            //var companyUser = await _db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.CompanyId == company.Id&&x1.UserId==userId);
-            //if (companyUser == null)
-            //{
-            //    Response.StatusCode = 404;
-            //    return null;
-            //}
+
             var oldCompany = await Company.GetIfAccess(_db, userId, company.Id);
 
             //var oldCompany = await _db.Companys.FirstOrDefaultAsync(x1 => x1.Id == company.Id);
@@ -128,23 +101,44 @@ namespace ProjectRecruting.Controllers
             }
             //byte[] newImage = null;
             await oldCompany.SetImage(uploadedFile, _appEnvironment);
-            //if (uploadedFile != null && uploadedFile.Length > 0)
-            //{
-            //    string path = "/images/uploads/company_" + oldCompany.Id + "_mainimage";// + uploadedFile[0].FileName;
-            //    // сохраняем файл в папку Files в каталоге wwwroot
-            //    using (var fileStream = new FileStream(_appEnvironment.WebRootPath + path, FileMode.Create))
-            //    {
-            //        await uploadedFile[0].CopyToAsync(fileStream);
-            //    }
-            //    //using (var binaryReader = new BinaryReader(uploadedFile[0].OpenReadStream()))
-            //    //{
-            //    //    newImage = binaryReader.ReadBytes((int)uploadedFile[0].Length);
-            //    //}
-            //}
+
             oldCompany.ChangeData(company.Name, company.Description, company.Number, company.Email);//, company.Image);
             await _db.SaveChangesAsync();
             return oldCompany;
         }
+
+        [HttpPost("AddUserToCompany")]
+        public async Task<bool?> AddUserToCompany([FromForm]int companyId, string newUserId)
+        {
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
+            if (statusId != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return null;
+            }
+            var company = await Company.GetIfAccess(_db, userId, companyId);
+            if (company == null)
+                return null;
+            return await company.AddHeadUser(_db, newUserId);
+
+        }
+
+        [HttpPost("DeleteUserFromCompany")]
+        public async Task<bool?> DeleteUserFromCompany([FromForm]int companyId, string newUserId)
+        {
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
+            if (statusId != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return null;
+            }
+            var company = await Company.GetIfAccess(_db, userId, companyId);
+            if (company == null)
+                return null;
+            return await company.DeleteHeadUser(_db, newUserId);
+
+        }
+
 
 
         // [Authorize]
@@ -163,11 +157,7 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return null;
             }
-            //if (string.IsNullOrWhiteSpace(userId))
-            //{
-            //    Response.StatusCode = 404;
-            //    return null;
-            //}
+
             if (!await ApplicationUser.CheckAccessEditCompany(_db, project.CompanyId, userId))
             {
                 Response.StatusCode = 404;
@@ -180,20 +170,9 @@ namespace ProjectRecruting.Controllers
             await newProject.AddImagesToDbSystem(_db, _appEnvironment, uploads);
             await newProject.AddCompetences(_db, competences);
 
-            var listTown = await Town.GetOrCreate(_db, townNames);
-            foreach (var i in listTown)
-            {
-                _db.ProjectTowns.Add(new Models.Domain.ManyToMany.ProjectTown(i.Id, newProject.Id));
-            }
-            //var town=await Town.GetByName(_db,townName);
-            //if(town==null)
-            //{
-            //    town = new Town(townName);
-            //    _db.Towns.Add(town);
-            //    await _db.SaveChangesAsync();
-            //}
-            //_db.ProjectTowns.Add(new Models.Domain.ManyToMany.ProjectTown(town.Id,newProject.Id));
-            await _db.SaveChangesAsync();
+            await Project.AddTowns(_db, newProject.Id, townNames.ToList());
+
+            // await _db.SaveChangesAsync();
 
             return newProject;
 
@@ -201,7 +180,7 @@ namespace ProjectRecruting.Controllers
         }
 
         // [Authorize]
-        [HttpPost]
+        [HttpPost("ChangeProject")]
         public async Task<bool> ChangeProject([FromForm]Project project, [FromForm]IFormFileCollection uploads, [FromForm] int[] deleteImages, [FromForm]int[] competenceIds)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
@@ -216,11 +195,7 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return false;
             }
-            //if (string.IsNullOrWhiteSpace(userId))
-            //{
-            //    Response.StatusCode = 404;
-            //    return false;
-            //}
+
             var oldProj = await ApplicationUser.CheckAccessEditProject(_db, project.Id, userId);
             if (oldProj == null)
             {
@@ -238,33 +213,12 @@ namespace ProjectRecruting.Controllers
 
         }
 
-        //меняет статус проекта на закрытый
-        ////[Authorize]
-        //[HttpPost]
-        //public async Task<bool> CloseProject([FromForm]int projectId)//#TODO хз стоит ли объединять с CompliteProject в метод ChangeStatusProject
-        //{
-        //    string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
-        //    if (statusId != 0 || userId == null)
-        //    {
-        //        Response.StatusCode = 401;
-        //        return false;
-        //    }
-
-        //    var proj = await ApplicationUser.CheckAccessEditProject(_db, projectId, userId);
-        //    if (proj == null)
-        //    {
-        //        Response.StatusCode = 404;
-        //        return false;
-        //    }
-        //    await proj.SetStatus(_db, StatusProject.Closed);
-        //    return true;
-        //}
 
 
-        //меняет статус проекта на выполненный
+        //меняет статус проекта на новый
         // [Authorize]
-        [HttpPost]
-        public async Task<bool> ChangeStatusProject([FromForm]int projectId, [FromForm]StatusProject newStatus)//#TODO хз стоит ли объединять с CloseProject в метод ChangeStatusProject
+        [HttpPost("ChangeStatusProject")]
+        public async Task<bool> ChangeStatusProject([FromForm]int projectId, [FromForm]StatusProject newStatus)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -285,8 +239,8 @@ namespace ProjectRecruting.Controllers
 
 
         // [Authorize]
-        [HttpPost]
-        public async Task<bool> ApproveStudent([FromForm]int projectId, [FromForm]string studentId)
+        [HttpPost("ChangeStatusStudent")]
+        public async Task<bool> ChangeStatusStudent([FromForm]int projectId, [FromForm]string studentId, [FromForm]StatusInProject newStatus)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -302,32 +256,14 @@ namespace ProjectRecruting.Controllers
                 return false;
             }
 
-            return await proj.ChangeStatusUser(_db, StatusInProject.Approved, studentId);
+            return await proj.ChangeStatusUser(_db, newStatus, studentId);
         }
 
-        // [Authorize]
-        [HttpPost]
-        public async Task<bool> CancelStudent([FromForm]int projectId, [FromForm]string studentId)
-        {
-            string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
-            if (statusId != 0 || userId == null)
-            {
-                Response.StatusCode = 401;
-                return false;
-            }
 
-            var proj = await ApplicationUser.CheckAccessEditProject(_db, projectId, userId);
-            if (proj == null)
-            {
-                Response.StatusCode = 404;
-                return false;
-            }
-
-            return await proj.ChangeStatusUser(_db, StatusInProject.Canceled, studentId);
-        }
 
 
         //[Authorize]
+        [HttpGet("GetStudents")]
         public async Task<List<UserShort>> GetStudents([FromForm]int projectId, [FromForm] StatusInProject status)
         {
 

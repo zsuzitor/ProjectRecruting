@@ -31,7 +31,7 @@ namespace ProjectRecruting.Models.Domain
 
         public List<CompetenceProject> CompetenceProjects { get; set; }
         public List<ProjectUser> ProjectUsers { get; set; }
-        //если пусто то видно всем
+
         public List<ProjectTown> ProjectTowns { get; set; }
 
         public List<Image> Images { get; set; }
@@ -75,20 +75,8 @@ namespace ProjectRecruting.Models.Domain
                     }
                 }
 
-
-                //using (var binaryReader = new BinaryReader(uploadedFile[0].OpenReadStream()))
-                //{
-                //    newImage = binaryReader.ReadBytes((int)uploadedFile[0].Length);
-                //}
             }
 
-
-            //foreach (var i in imgs)
-            //{
-            //    res.Add(new Image() { ProjectId = this.Id, Data = i });
-            //}
-            //db.Images.AddRange(res);
-            //await db.SaveChangesAsync();
             return res;
         }
 
@@ -102,16 +90,6 @@ namespace ProjectRecruting.Models.Domain
             await db.SaveChangesAsync();
             return images;
         }
-
-        //public async Task<List<Image>> DeleteImagesFromDbIfAccess(ApplicationDbContext db, int projectId, int[] imageIds)
-        //{
-        //    123
-        //    var images = await db.Images.Where(x1 => imageIds.Contains(x1.Id) && x1.ProjectId == projectId).ToListAsync();
-        //    db.Images.RemoveRange(images);
-        //    await db.SaveChangesAsync();
-        //    return images;
-        //}
-
 
 
         public void ChangeData(string name, string description, bool? payment)
@@ -136,7 +114,7 @@ namespace ProjectRecruting.Models.Domain
             return await db.Projects.FirstOrDefaultAsync(x1 => x1.Id == id);
         }
 
-
+        //не создает запись если ее нет
         public async Task<bool> ChangeStatusUser(ApplicationDbContext db, StatusInProject newStatus, string userId)
         {
             var record = await db.Entry(this).Collection(x1 => x1.ProjectUsers).Query().FirstOrDefaultAsync(x1 => x1.UserId == userId);
@@ -148,7 +126,7 @@ namespace ProjectRecruting.Models.Domain
         }
 
 
-        //если записи нет то создаст ее. у записи будет переданный статус
+        //создает если надо и изменяет запись .(если записи нет то создаст ее.) у записи будет переданный статус
         public async Task<bool> CreateChangeStatusUser(ApplicationDbContext db, StatusInProject newStatus, string userId)
         {
             bool exists = false;
@@ -166,7 +144,7 @@ namespace ProjectRecruting.Models.Domain
         }
 
 
-        //без валидации
+        //добавление без валидации
         public async Task<List<Competence>> AddCompetences(ApplicationDbContext db, string[] competences)
         {
             //List<Competence> res = new List<Competence>();
@@ -201,7 +179,7 @@ namespace ProjectRecruting.Models.Domain
             return needAdded;
         }
 
-        //без валидации
+        //удаление компетенций без валидации
         public async Task DeleteCompetences(ApplicationDbContext db, int[] competenceIds)
         {
             db.CompetenceProjects.RemoveRange(db.CompetenceProjects.Where(x1 => competenceIds.Contains(x1.Id) && x1.ProjectId == this.Id));
@@ -215,6 +193,8 @@ namespace ProjectRecruting.Models.Domain
             return db.Entry(this).Collection(x1 => x1.ProjectUsers).Query().Where(x1 => x1.Status == status).Select(x1 => x1.UserId);
 
         }
+
+        //список id пользователей проекта с определенным статусом
         public async Task<List<string>> GetStudents(ApplicationDbContext db, StatusInProject status)
         {
             return await this.GetStudentsQuery(db, status).ToListAsync();
@@ -222,6 +202,8 @@ namespace ProjectRecruting.Models.Domain
             // return await db.Entry(this).Collection(x1 => x1.ProjectUsers).Query().Where(x1 => x1.Status == status).Select(x1 => x1.UserId).ToListAsync();
 
         }
+
+        //список  пользователей проекта с определенным статусом
         public async Task<List<UserShort>> GetStudentsShortEntity(ApplicationDbContext db, StatusInProject status)
         {
             //List<UserShort> res = new List<UserShort>();
@@ -230,15 +212,19 @@ namespace ProjectRecruting.Models.Domain
         }
 
 
-
+        //без сортировки, все записи для переданного списка
         public async static Task<List<ProjectShort>> GetShortsData(ApplicationDbContext db, List<int> projectIds)
         {
             return await db.Projects.Where(x1 => projectIds.Contains(x1.Id)).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
         }
+
+        //без осртировки, все записи
         public async static Task<List<ProjectShort>> GetShortsData(ApplicationDbContext db)
         {
             return await db.Projects.Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
         }
+
+        //без сортировки, просто все записи в городе
         public async static Task<List<int>> GetByTown(ApplicationDbContext db, int townId)
         {
             return await db.ProjectTowns.Where(x1 => x1.TownId == townId).Select(x1 => x1.ProjectId).Distinct().ToListAsync();
@@ -250,6 +236,8 @@ namespace ProjectRecruting.Models.Domain
             return await db.ProjectUsers.Where(x1 => projectIds.Contains(x1.ProjectId)).//Select(x1 => x1.ProjectId).
                GroupBy(x1 => x1.ProjectId).OrderBy(x1 => x1.Count()).Select(x1 => x1.Key).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
         }
+
+
         public async static Task<List<Project>> SortByActualEntity(ApplicationDbContext db, List<int> projectIds)
         {
             return await db.ProjectUsers.Where(x1 => projectIds.Contains(x1.ProjectId)).//Select(x1 => x1.ProjectId).
@@ -257,65 +245,24 @@ namespace ProjectRecruting.Models.Domain
                OrderBy(x1 => x1.group.Count()).Select(x1 => x1.entity).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
         }
 
+
         //составляем запрос
-        public static IQueryable<Project> GetActualQueryEntityInTown(ApplicationDbContext db, int townId)
+        public static IQueryable<Project> GetActualQueryEntityInTown(ApplicationDbContext db, int? townId)//#TODO можно вынести db.Projects в параметры а этот метод сделать оболочкой, если нужно будет
         {
-            //проекты города
-            //var projsId=db.ProjectTowns.Where(x1 => x1.TownId == townId).ToList();
-            //db.ProjectUsers.Where()
-
-            //         var asd = db.ProjectTowns.Where(x1 => x1.TownId == townId).GroupJoin(
-            //      db.ProjectUsers,
-            //      x1 => x1.ProjectId,
-            //      x2 => x2.ProjectId,
-            //      (x, y) => new { projId = x.ProjectId, prUser = y })
-            //.SelectMany(
-            //      x => x.prUser.DefaultIfEmpty(),
-            //      (x, y) => new { projId = x.projId, userId = y.UserId, status = y.Status }).ToList();//.GroupBy(x1 => x1.proj.Id).OrderBy(x1 => x1.Count()).Select(x1=>x1.).ToList();
-
-
-            return db.ProjectTowns.Where(x1 => x1.TownId == townId).
-                GroupJoin(db.ProjectUsers,x1 => x1.ProjectId,x2 => x2.ProjectId,(x, y) => new { proj = x, prUser = y }).
-                SelectMany(x => x.prUser.DefaultIfEmpty(),(x, y) => x.proj.ProjectId).GroupBy(x1 => x1).Select(x1 => new { projId = x1.Key, count = x1.Count() }).
+            return db.ProjectTowns.Where(x1 => townId == null ? true : (x1.TownId == townId)).
+                GroupJoin(db.ProjectUsers, x1 => x1.ProjectId, x2 => x2.ProjectId, (x, y) => new { proj = x, prUser = y }).
+                SelectMany(x => x.prUser.DefaultIfEmpty(), (x, y) => x.proj.ProjectId).GroupBy(x1 => x1).Select(x1 => new { projId = x1.Key, count = x1.Count() }).
                 Join(db.Projects, x1 => x1.projId, x2 => x2.Id, (x1, x2) => new { proj = x2, count = x1.count }).
                 OrderByDescending(x1 => x1.count).Select(x1 => x1.proj);
 
-            //return null;
-
-
-            //        var asd = db.ProjectTowns.Where(x1 => x1.TownId == townId).Join(db.Projects, x1 => x1.ProjectId, x2 => x2.Id, (x1, x2) => x2).GroupJoin(
-            //      db.ProjectUsers,
-            //      x1 => x1.Id,
-            //      x2 => x2.ProjectId,
-            //      (x, y) => new { proj = x, prUser = y })
-            //.SelectMany(
-            //      x => x.prUser.DefaultIfEmpty(),
-            //      (x, y) => new { proj = x.proj, userId = y.UserId, status = y.Status }).ToList();//.GroupBy(x1 => x1.proj.Id).OrderBy(x1 => x1.Count()).Select(x1=>x1.).ToList();
-
-
-            //db.ProjectTowns.Where(x1=>x1.TownId==townId).Join(db.Projects,x1=>x1.ProjectId,x2=>x2.Id,(x1,x2)=>x2)
-
-            //return db.ProjectUsers.//Select(x1 => x1.ProjectId).
-            //  GroupBy(x1 => x1.ProjectId)
-            //  .Join(db.ProjectTowns, x1 => x1.Key, x2 => x2.ProjectId, (x1, x2) => new { group = x1, town = x2 }).Where(x1 => x1.town.TownId == townId).//#TODO #join тут вроде норм из за where
-            //  Join(db.Projects, x1 => x1.group.Key, x2 => x2.Id, (x1, x2) => new { group = x1.group, entity = x2 }).
-            //  OrderBy(x1 => x1.group.Count()).Select(x1 => x1.entity);
-
-
-
-            //return db.ProjectUsers.//Select(x1 => x1.ProjectId).
-            //   GroupBy(x1 => x1.ProjectId)
-            //   .Join(db.ProjectTowns, x1 => x1.Key, x2 => x2.ProjectId, (x1, x2) => new { group = x1, town = x2 }).Where(x1 => x1.town.TownId == townId).//#TODO #join тут вроде норм из за where
-            //   Join(db.Projects, x1 => x1.group.Key, x2 => x2.Id, (x1, x2) => new { group = x1.group, entity = x2 }).
-            //   OrderBy(x1 => x1.group.Count()).Select(x1 => x1.entity);
         }
         //получаем полные данные
-        public async static Task<List<Project>> GetActualEntityInTown(ApplicationDbContext db, int townId)
+        public async static Task<List<Project>> GetActualEntityInTown(ApplicationDbContext db, int? townId)
         {
             return await Project.GetActualQueryEntityInTown(db, townId).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
         }
         //получаем сокращенные данные
-        public async static Task<List<ProjectShort>> GetActualShortEntityInTown(ApplicationDbContext db, int townId, string userId)
+        public async static Task<List<ProjectShort>> GetActualShortEntityInTown(ApplicationDbContext db, int? townId, string userId)
         {
             var projs = await Project.GetActualQueryEntityInTown(db, townId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
             if (string.IsNullOrWhiteSpace(userId))
@@ -334,17 +281,29 @@ namespace ProjectRecruting.Models.Domain
         {
             return await db.ProjectUsers.GroupBy(x1 => x1.ProjectId).OrderBy(x1 => x1.Count()).Select(x1 => x1.Key).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
         }
-        //public async static Task<List<Project>> GetActual(ApplicationDbContext db, List<int> projectIds)
-        //{
-        //    return await db.ProjectUsers.Where(x1 => projectIds.Contains(x1.ProjectId)).//Select(x1 => x1.ProjectId).
-        //       GroupBy(x1 => x1.ProjectId).OrderBy(x1 => x1.Count()).Select(x1 => x1.Key).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
-        //}
+
 
         public async static Task<List<int>> GetActualInTown(ApplicationDbContext db, int townId)
         {
             return await Project.SortByActual(db, await Project.GetByTown(db, townId));
         }
 
+
+        public async static Task<List<Town>> AddTowns(ApplicationDbContext db, int projectId, List<string> townNames)
+        {
+            var listTown = await Town.GetOrCreate(db, townNames);
+            var townsId = listTown.Select(x1 => x1.Id);
+            var dontAdd = await db.ProjectTowns.Where(x1 => x1.ProjectId == projectId && townsId.Contains(x1.TownId)).ToListAsync();
+            var forAdd = listTown.Where(x1 => dontAdd.FirstOrDefault(x2 => x2.Id == x1.Id) == null).ToList();
+            // listTown.RemoveRange();
+            foreach (var i in forAdd)
+            {
+                db.ProjectTowns.Add(new Models.Domain.ManyToMany.ProjectTown(i.Id, projectId));
+            }
+
+            await db.SaveChangesAsync();
+            return forAdd;
+        }
 
 
 
