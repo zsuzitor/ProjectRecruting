@@ -75,9 +75,11 @@ namespace ProjectRecruting.Models.Domain
         }
 
 
-        public async static Task<List<Project>> GetProjectsByActual(ApplicationDbContext db, int companyId, int? townId)
+        public async static Task<List<ProjectShort>> GetProjectsByActual(ApplicationDbContext db, int companyId, int? townId)
         {
-            return await Project.GetActualQueryEntityInTown(db, townId).Where(x1 => x1.CompanyId == companyId).ToListAsync();
+            var res= await Project.GetActualQueryEntityInTown(db, townId).Where(x1 => x1.CompanyId == companyId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            await ProjectShort.SetMainImages(db,res);
+            return res;
         }
 
         public async Task<bool> AddHeadUser(ApplicationDbContext db, string userId)

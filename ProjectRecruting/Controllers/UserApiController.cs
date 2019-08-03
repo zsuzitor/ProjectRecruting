@@ -56,7 +56,7 @@ namespace ProjectRecruting.Controllers
 
         //просмотреть список актуальных проектов для города #TODO надо подсвечивать куда подал заявку
         [HttpGet("GetActualProject")]
-        public async Task<List<ProjectShort>> GetActualProject([FromForm]string town)
+        public async Task GetActualProject([FromForm]string town)//<List<ProjectShort>>
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
             //if (status != 0 || userId == null)
@@ -72,28 +72,29 @@ namespace ProjectRecruting.Controllers
                 string townLower = town.ToLower().Trim();
                 var townDb = await Town.GetByName(_db, townLower);
                 if (townDb == null)
-                    return new List<ProjectShort>();
+                    return;// new List<ProjectShort>();
                 townId = townDb.Id;
             }
             var res= await Project.GetActualShortEntityInTown(_db, townId, userId);
             await ProjectShort.SetMainImages(_db,res);
-            return res;
-
+            //return res;
+            Response.ContentType = "application/json";
+            await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
 
 
         }
-        [HttpGet("GetProject")]
-        public async Task<Project> GetProject([FromForm]int id)
-        {
-            return await Project.Get(_db, id);
-        }
+        //[HttpGet("GetProject")]
+        //public async Task<Project> GetProject([FromForm]int id)
+        //{
+        //    return await Project.Get(_db, id);
+        //}
 
 
         //список актуальных навыков для города
         [HttpGet("GetActualCompetences")]
-        public async Task<List<CompetenceShort>> GetActualCompetences([FromForm]string town)
+        public async Task GetActualCompetences([FromForm]string town)
         {
-            List<CompetenceShort> res = new List<CompetenceShort>();
+            //List<CompetenceShort> res = new List<CompetenceShort>();
 
             int? townId = null;
             if (town != null)
@@ -101,7 +102,7 @@ namespace ProjectRecruting.Controllers
                 string townLower = town.ToLower().Trim();
                 var townDb = await Town.GetByName(_db, townLower);
                 if (townDb == null)
-                    return new List<CompetenceShort>();
+                    return;// new List<CompetenceShort>();
                 townId = townDb.Id;
             }
             //if (town == null)
@@ -113,44 +114,55 @@ namespace ProjectRecruting.Controllers
             //var townDb = await Town.GetByName(_db, townLower);
             //if (townDb == null)
             //    return res;
-            return await Competence.GetActualShortEntityInTown(_db, townId);
+            var res= await Competence.GetActualShortEntityInTown(_db, townId);
 
+            //return await Competence.GetActualShortEntityInTown(_db, townId);
+
+            Response.ContentType = "application/json";
+            await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
 
         }
 
 
         [HttpGet("GetProjectsCompany")]
-        public async Task<List<Project>> GetProjectsCompany([FromForm]int companyId, [FromForm]int?townId)
+        public async Task GetProjectsCompany([FromForm]int companyId, [FromForm]int?townId)
         {
-            return await Company.GetProjectsByActual(_db,companyId,townId);
+           var res= await Company.GetProjectsByActual(_db,companyId,townId);
+            Response.ContentType = "application/json";
+            await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
 
         }
 
 
         [HttpGet("GetUserCompanys")]
-        public async Task<List<Company>> GetUserCompanys()
+        public async Task GetUserCompanys()
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
             if (status != 0 || userId == null)
             {
                 Response.StatusCode = 401;
-                return null;
+                return;// null;
             }
-            return await ApplicationUser.GetUserCompanys(_db, userId);
+            var res = (await ApplicationUser.GetUserCompanys(_db, userId)).Select(x1=>new CompanyShort(x1));
+            //return ;
+            Response.ContentType = "application/json";
+            await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
 
         }
 
         //проекты за которые пользователь отвечает
         [HttpGet("GetUserResponsibilityProjects")]
-        public async Task<List<Company>> GetUserResponsibilityProjects()
+        public async Task GetUserResponsibilityProjects()
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
             if (status != 0 || userId == null)
             {
                 Response.StatusCode = 401;
-                return null;
+                return;// null;
             }
-            return await ApplicationUser.GetUserCompanys(_db, userId);
+            var res= await ApplicationUser.GetUserResponsibilityProjects(_db, userId);
+            Response.ContentType = "application/json";
+            await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
 
         }
 
