@@ -75,8 +75,8 @@ namespace ProjectRecruting.Controllers
                     return;// new List<ProjectShort>();
                 townId = townDb.Id;
             }
-            var res= await Project.GetActualShortEntityInTown(_db, townId, userId);
-            await ProjectShort.SetMainImages(_db,res);
+            var res = await Project.GetActualShortEntityInTown(_db, townId, userId);
+            await ProjectShort.SetMainImages(_db, res);
             //return res;
             Response.ContentType = "application/json";
             await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
@@ -114,7 +114,7 @@ namespace ProjectRecruting.Controllers
             //var townDb = await Town.GetByName(_db, townLower);
             //if (townDb == null)
             //    return res;
-            var res= await Competence.GetActualShortEntityInTown(_db, townId);
+            var res = await Competence.GetActualShortEntityInTown(_db, townId);
 
             //return await Competence.GetActualShortEntityInTown(_db, townId);
 
@@ -125,9 +125,9 @@ namespace ProjectRecruting.Controllers
 
 
         [HttpGet("GetProjectsCompany")]
-        public async Task GetProjectsCompany([FromForm]int companyId, [FromForm]int?townId)
+        public async Task GetProjectsCompany([FromForm]int companyId, [FromForm]int? townId)
         {
-           var res= await Company.GetProjectsByActual(_db,companyId,townId);
+            var res = await Company.GetProjectsByActual(_db, companyId, townId);
             Response.ContentType = "application/json";
             await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
 
@@ -143,7 +143,7 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 401;
                 return;// null;
             }
-            var res = (await ApplicationUser.GetUserCompanys(_db, userId)).Select(x1=>new CompanyShort(x1));
+            var res = (await ApplicationUser.GetUserCompanys(_db, userId)).Select(x1 => new CompanyShort(x1));
             //return ;
             Response.ContentType = "application/json";
             await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
@@ -160,7 +160,7 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 401;
                 return;// null;
             }
-            var res= await ApplicationUser.GetUserResponsibilityProjects(_db, userId);
+            var res = await ApplicationUser.GetUserResponsibilityProjects(_db, userId);
             Response.ContentType = "application/json";
             await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
 
@@ -177,7 +177,7 @@ namespace ProjectRecruting.Controllers
                 return;// null;
             }
 
-            var res= await ApplicationUser.GetUserRequests(_db, userId, statusInProject);
+            var res = await ApplicationUser.GetUserRequests(_db, userId, statusInProject);
             //res.ForEach(x1=>
             //{
 

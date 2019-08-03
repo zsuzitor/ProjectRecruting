@@ -36,9 +36,16 @@ namespace ProjectRecruting.Controllers
             _appEnvironment = appEnvironment;
         }
 
-        //[Authorize]
+        /// <summary>
+        /// создание компании
+        /// </summary>
+        /// <param name="company">поля компании</param>
+        /// <param name="uploadedFile">аватар компании</param>
+        /// <returns>{ Id, Name }</returns>
+        /// <response code="401">ошибка дешифрации токена, просрочен, изменен, не передан</response>
+        /// <response code="400">переданы не валидные данные</response>
         [HttpPost("CreateCompany")]
-        public async Task<string> CreateCompany([FromForm]Company company, [FromForm]IFormFile[] uploadedFile = null)
+        public async Task CreateCompany([FromForm]Company company, [FromForm]IFormFile[] uploadedFile = null)
         {
             //var file = HttpContext.Request.Form.Files;
 
@@ -46,16 +53,14 @@ namespace ProjectRecruting.Controllers
             if (statusId != 0 || userId == null)
             {
                 Response.StatusCode = 401;
-                return null;
+                return;
             }
 
             if (!ModelState.IsValid)
             {
-                Response.StatusCode = 404;
-                return null;
+                Response.StatusCode = 400;
+                return;
             }
-
-
             Company newCompany = new Company(company.Name, company.Description, company.Number, company.Email);
 
             _db.Companys.Add(newCompany);
@@ -66,12 +71,27 @@ namespace ProjectRecruting.Controllers
             _db.CompanyUsers.Add(new Models.Domain.ManyToMany.CompanyUser(userId, newCompany.Id));
             await _db.SaveChangesAsync();
             //return newCompany;
-            return JsonConvert.SerializeObject(new { newCompany.Id, newCompany.Name }, new JsonSerializerSettings { Formatting = Formatting.Indented });
+            Response.ContentType = "application/json";
+
+            await Response.WriteAsync(JsonConvert.SerializeObject(new { newCompany.Id, newCompany.Name }, new JsonSerializerSettings { Formatting = Formatting.Indented }));
         }
 
 
-        // [Authorize]
-        //null-нет доступа
+        /// <summary>
+        /// изменение компании
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <param name="company">данные компании</param>
+        /// <param name="uploadedFile">новый аватар компании,если null то остается старый</param>
+        /// <returns>bool?--true-добавлена, null-что то не так</returns>
+        /// <response code="400">плохие данные</response>
+        /// <response code="401">ошибка дешифрации токена, просрочен, изменен, не передан</response>
+        /// <response code="404">компания для изменения не найдена</response>
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
         [HttpPost("ChangeCompany")]
         public async Task<bool?> ChangeCompany([FromForm]Company company, [FromForm] IFormFile[] uploadedFile = null)
         {
@@ -87,7 +107,7 @@ namespace ProjectRecruting.Controllers
                 ModelState.AddModelError("Id", "Не передан Id");
             if (!ModelState.IsValid)
             {
-                Response.StatusCode = 404;
+                Response.StatusCode = 400;
                 return null;
             }
 
@@ -181,7 +201,7 @@ namespace ProjectRecruting.Controllers
 
         // [Authorize]
         [HttpPost("ChangeProject")]
-        public async Task<bool> ChangeProject([FromForm]Project project, [FromForm]IFormFileCollection uploads, 
+        public async Task<bool> ChangeProject([FromForm]Project project, [FromForm]IFormFileCollection uploads,
             [FromForm] int[] deleteImages, [FromForm]string[] competences, [FromForm]int[] competenceIds)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);

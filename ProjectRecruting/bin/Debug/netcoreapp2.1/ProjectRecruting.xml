@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>ProjectRecruting</name>
+    </assembly>
+    <members>
+        <member name="M:ProjectRecruting.Controllers.AccountApiController.Login(System.String,System.String)">
+             <summary>
+             логин
+             </summary>
+             <param name="username">логин(почта)</param>
+             <param name="password">пароль</param>
+             <returns>
+             {
+            access_token,
+            refresh_token,
+            username
+            }
+             </returns>
+             <response code="200"></response>
+             <response code="400">пользователь не найден</response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.AccountApiController.Register(ProjectRecruting.Models.RegisterModel)">
+             <summary>
+             регистрация
+             </summary>
+             <param name="model"></param>
+             <returns>
+             {
+            access_token,
+            refresh_token,
+            username
+            }
+             </returns>
+            <response code="200"></response>
+            <response code="400">переданы невалидные данные</response>
+            <response code="404">ошибка при создании пользователя</response>
+            <response code="400">ошибка получения токена</response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.AccountApiController.RefreshToken(System.String)">
+             <summary>
+             обновление токена
+             </summary>
+             <param name="refreshToken">refresh token</param>
+             <returns>
+             {
+            access_token,
+            refresh_token
+            }
+             </returns>
+             <response code="400">ошибка дешифрации токена, просрочен, изменен, не передан</response>
+             <response code="401">ошибка обновления токена</response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.CompanyApiController.CreateCompany(ProjectRecruting.Models.Domain.Company,Microsoft.AspNetCore.Http.IFormFile[])">
+            <summary>
+            создание компании
+            </summary>
+            <param name="company">поля компании</param>
+            <param name="uploadedFile">аватар компании</param>
+            <returns>{ Id, Name }</returns>
+            <response code="401">ошибка дешифрации токена, просрочен, изменен, не передан</response>
+            <response code="400">переданы не валидные данные</response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.CompanyApiController.ChangeCompany(ProjectRecruting.Models.Domain.Company,Microsoft.AspNetCore.Http.IFormFile[])">
+            <summary>
+            изменение компании
+            </summary>
+            <remarks>
+            ----
+            </remarks>
+            <param name="company">данные компании</param>
+            <param name="uploadedFile">новый аватар компании,если null то остается старый</param>
+            <returns>bool?--true-добавлена, null-что то не так</returns>
+            <response code="400">плохие данные</response>
+            <response code="401">ошибка дешифрации токена, просрочен, изменен, не передан</response>
+        </member>
+    </members>
+</doc>
