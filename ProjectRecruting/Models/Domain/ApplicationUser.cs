@@ -104,11 +104,13 @@ namespace ProjectRecruting.Models.Domain
 
         }
 
-        //без сортировки по актуальности
-        public async static Task<List<Project>> GetUserRequests(ApplicationDbContext db, string userId, StatusInProject statusInProject)
+        //проекты в которые пользователь подал заявки, картинки устанавливаются,без сортировки по актуальности
+        public async static Task<List<ProjectShort>> GetUserRequests(ApplicationDbContext db, string userId, StatusInProject statusInProject)
         {
-            return await db.ProjectUsers.Where(x1 => x1.UserId == userId && x1.Status == statusInProject).
-                Join(db.Projects, x1 => x1.ProjectId, x2 => x2.Id, (x1, x2) => x2).ToListAsync();
+            var res = await db.ProjectUsers.Where(x1 => x1.UserId == userId && x1.Status == statusInProject).
+                Join(db.Projects, x1 => x1.ProjectId, x2 => x2.Id, (x1, x2) => x2).Select(x1 => new ProjectShort(x1.Name, x1.Id) { Status = statusInProject }).ToListAsync();
+            await ProjectShort.SetMainImages(db, res);
+            return res;
 
         }
 

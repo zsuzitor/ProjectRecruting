@@ -21,6 +21,7 @@ namespace ProjectRecruting.Models
         public const string AUDIENCE = "https://localhost:44356/"; // потребитель токена
         public const string KEY = "mysupersecret_secretkey!123";   // ключ для шифрации
         public const int LIFETIME = 10; // время жизни токена - 1 минута
+        public const int LengthRefreshToken = 10;
         //public const int JwtExpireDays = 10; 
         public static SymmetricSecurityKey GetSymmetricSecurityKey()
         {
@@ -56,11 +57,11 @@ namespace ProjectRecruting.Models
         }
 
 
-        public static string GenerateRefreshToken(int length)
+        public static string GenerateRefreshToken()
         {
             Random random = new Random();
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            return new string(Enumerable.Repeat(chars, length)
+            return new string(Enumerable.Repeat(chars, AuthJWT.LengthRefreshToken)
               .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
@@ -86,7 +87,7 @@ namespace ProjectRecruting.Models
             var user = await db.Users.FirstOrDefaultAsync(x1 => x1.Id == userId && x1.RefreshTokenHash == hashToken);
             if (user == null)
                 return null;
-            string token = AuthJWT.GenerateRefreshToken(10);
+            string token = AuthJWT.GenerateRefreshToken();
             await user.SetRefreshToken(db, token);
 
             return new Tuple<string, string>(AuthJWT.GenerateMainToken(AuthJWT.GetIdentity(user)), token);
@@ -103,7 +104,7 @@ namespace ProjectRecruting.Models
             if (!passwordOK)
                 return null;
 
-            string refToken = AuthJWT.GenerateRefreshToken(10);
+            string refToken = AuthJWT.GenerateRefreshToken();
             await user.SetRefreshToken(db, refToken);
 
             return new Tuple<string, string>(AuthJWT.GenerateMainToken(AuthJWT.GetIdentity(user)), refToken);

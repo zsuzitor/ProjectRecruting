@@ -26,12 +26,12 @@ namespace ProjectRecruting.Controllers
     public class CompanyApiController : ControllerBase
     {
         readonly ApplicationDbContext _db = null;
-        readonly UserManager<ApplicationUser> _userManager = null;
+        //readonly UserManager<ApplicationUser> _userManager = null;
         IHostingEnvironment _appEnvironment { get; set; }
-        public CompanyApiController(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IHostingEnvironment appEnvironment)
+        public CompanyApiController(ApplicationDbContext db, IHostingEnvironment appEnvironment)// UserManager<ApplicationUser> userManager,
         {
             _db = db;
-            _userManager = userManager;
+            //_userManager = userManager;
             _appEnvironment = appEnvironment;
         }
 
@@ -57,8 +57,6 @@ namespace ProjectRecruting.Controllers
 
             Company newCompany = new Company(company.Name, company.Description, company.Number, company.Email);
 
-
-
             _db.Companys.Add(newCompany);
             await _db.SaveChangesAsync();
 
@@ -72,8 +70,9 @@ namespace ProjectRecruting.Controllers
 
 
         // [Authorize]
+        //null-нет доступа
         [HttpPost("ChangeCompany")]
-        public async Task<Company> ChangeCompany([FromForm]Company company, [FromForm] IFormFile[] uploadedFile = null)
+        public async Task<bool?> ChangeCompany([FromForm]Company company, [FromForm] IFormFile[] uploadedFile = null)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -104,7 +103,7 @@ namespace ProjectRecruting.Controllers
 
             oldCompany.ChangeData(company.Name, company.Description, company.Number, company.Email);//, company.Image);
             await _db.SaveChangesAsync();
-            return oldCompany;
+            return true;//oldCompany
         }
 
         [HttpPost("AddUserToCompany")]
@@ -143,7 +142,7 @@ namespace ProjectRecruting.Controllers
 
         // [Authorize]
         [HttpPost("CreateProject")]
-        public async Task<Project> CreateProject([FromForm]Project project, [FromForm]string[] competences, [FromForm]string[] townNames, [FromForm]IFormFileCollection uploads = null)
+        public async Task<int?> CreateProject([FromForm]Project project, [FromForm]string[] competences, [FromForm]string[] townNames, [FromForm]IFormFileCollection uploads = null)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -174,7 +173,7 @@ namespace ProjectRecruting.Controllers
 
             // await _db.SaveChangesAsync();
 
-            return newProject;
+            return newProject.Id;
 
 
         }
@@ -264,17 +263,17 @@ namespace ProjectRecruting.Controllers
 
         //[Authorize]
         [HttpGet("GetStudents")]
-        public async Task<List<UserShort>> GetStudents([FromForm]int projectId, [FromForm] StatusInProject status)
+        public async Task GetStudents([FromForm]int projectId, [FromForm] StatusInProject status)
         {
 
             if (status != StatusInProject.Approved && status != StatusInProject.Canceled && status != StatusInProject.InProccessing)
-                return null;
+                return;// null;
 
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
             {
                 Response.StatusCode = 401;
-                return null;
+                return;// null;
             }
 
             var proj = await ApplicationUser.CheckAccessEditProject(_db, projectId, userId);
@@ -282,11 +281,13 @@ namespace ProjectRecruting.Controllers
             if (proj == null)
             {
                 Response.StatusCode = 404;
-                return null;
+                return;// null;
             }
 
             var usersShort = await proj.GetStudentsShortEntity(_db, status);
-            return usersShort;
+            Response.ContentType = "application/json";
+            await Response.WriteAsync(JsonConvert.SerializeObject(usersShort, new JsonSerializerSettings { Formatting = Formatting.Indented }));
+            //return usersShort;
         }
 
     }

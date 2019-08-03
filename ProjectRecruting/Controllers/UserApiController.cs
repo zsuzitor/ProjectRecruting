@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models;
 using ProjectRecruting.Models.Domain;
@@ -57,7 +58,7 @@ namespace ProjectRecruting.Controllers
             //    Response.StatusCode = 401;
             //    return null;
             //}
-            List<ProjectShort> res = new List<ProjectShort>();
+            //List<ProjectShort> res = new List<ProjectShort>();
 
             int? townId = null;
             if (town != null)
@@ -65,11 +66,12 @@ namespace ProjectRecruting.Controllers
                 string townLower = town.ToLower().Trim();
                 var townDb = await Town.GetByName(_db, townLower);
                 if (townDb == null)
-                    return res;
+                    return new List<ProjectShort>();
                 townId = townDb.Id;
             }
-            
-            return await Project.GetActualShortEntityInTown(_db, townId, userId);
+            var res= await Project.GetActualShortEntityInTown(_db, townId, userId);
+            await ProjectShort.SetMainImages(_db,res);
+            return res;
 
 
 
@@ -139,16 +141,23 @@ namespace ProjectRecruting.Controllers
 
 
         [HttpGet("GetUserRequests")]
-        public async Task<List<Project>> GetUserRequests([FromForm] StatusInProject statusInProject)
+        public async Task GetUserRequests([FromForm] StatusInProject statusInProject)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
             if (status != 0 || userId == null)
             {
                 Response.StatusCode = 401;
-                return null;
+                return;// null;
             }
-           
-            return await ApplicationUser.GetUserRequests(_db, userId,statusInProject);
+
+            var res= await ApplicationUser.GetUserRequests(_db, userId, statusInProject);
+            //res.ForEach(x1=>
+            //{
+
+            //});
+            Response.ContentType = "application/json";
+            await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
+            //return await ApplicationUser.GetUserRequests(_db, userId,statusInProject);
 
         }
 

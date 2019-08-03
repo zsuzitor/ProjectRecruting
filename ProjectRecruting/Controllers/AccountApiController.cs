@@ -45,7 +45,7 @@ namespace ProjectRecruting.Controllers
             var identity = AuthJWT.GetIdentity(user);
 
             var encodedJwt = AuthJWT.GenerateMainToken(identity);
-            var encodedRefJwt = AuthJWT.GenerateRefreshToken(10);
+            var encodedRefJwt = AuthJWT.GenerateRefreshToken();
             await user.SetRefreshToken(_db, encodedRefJwt);
             var response = new
             {
@@ -87,7 +87,7 @@ namespace ProjectRecruting.Controllers
             }
 
             var encodedJwt = AuthJWT.GenerateMainToken(identity);
-            var encodedRefJwt = AuthJWT.GenerateRefreshToken(10);
+            var encodedRefJwt = AuthJWT.GenerateRefreshToken();
             await user.SetRefreshToken(_db, encodedRefJwt);
 
             var response = new

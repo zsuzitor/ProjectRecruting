@@ -215,13 +215,17 @@ namespace ProjectRecruting.Models.Domain
         //без сортировки, все записи для переданного списка
         public async static Task<List<ProjectShort>> GetShortsData(ApplicationDbContext db, List<int> projectIds)
         {
-            return await db.Projects.Where(x1 => projectIds.Contains(x1.Id)).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            var res = await db.Projects.Where(x1 => projectIds.Contains(x1.Id)).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            await ProjectShort.SetMainImages(db,res);
+            return res;
         }
 
         //без осртировки, все записи
         public async static Task<List<ProjectShort>> GetShortsData(ApplicationDbContext db)
         {
-            return await db.Projects.Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            var res = await db.Projects.Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            await ProjectShort.SetMainImages(db, res);
+            return res;
         }
 
         //без сортировки, просто все записи в городе
@@ -265,6 +269,7 @@ namespace ProjectRecruting.Models.Domain
         public async static Task<List<ProjectShort>> GetActualShortEntityInTown(ApplicationDbContext db, int? townId, string userId)
         {
             var projs = await Project.GetActualQueryEntityInTown(db, townId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            await ProjectShort.SetMainImages(db, projs);
             if (string.IsNullOrWhiteSpace(userId))
                 return projs;
             var status = await db.ProjectUsers.Where(x1 => x1.UserId == userId && projs.FirstOrDefault(x2 => x2.ProjectId == x1.ProjectId) != null).ToListAsync();
