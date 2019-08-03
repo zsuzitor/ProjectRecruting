@@ -16,6 +16,7 @@ using ProjectRecruting.Models.Domain;
 
 namespace ProjectRecruting.Controllers
 {
+    [Produces("application/json")]
     [Route("api/Account")]
     [ApiController]
     public class AccountApiController : ControllerBase

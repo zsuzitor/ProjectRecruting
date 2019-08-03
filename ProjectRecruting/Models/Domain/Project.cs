@@ -151,7 +151,7 @@ namespace ProjectRecruting.Models.Domain
             if (competences == null || competences.Length == 0)
                 return new List<Competence>();
             var competencesList = competences.Select(x1 => x1.ToLower().Trim()).ToList();
-            var existsCompetences = await db.Competences.Where(x1 => competences.Contains(x1.Name)).ToListAsync();
+            var existsCompetences = await db.Competences.Where(x1 => competencesList.Contains(x1.Name)).ToListAsync();
             //db.CompetenceProjects.Where(x1=> existsCompetences.Contains(x1));
 
 

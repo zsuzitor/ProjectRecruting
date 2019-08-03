@@ -21,6 +21,7 @@ using ProjectRecruting.Models.Domain;
 
 namespace ProjectRecruting.Controllers
 {
+    [Produces("application/json")]
     [Route("api/Company")]
     [ApiController]
     public class CompanyApiController : ControllerBase
@@ -180,7 +181,8 @@ namespace ProjectRecruting.Controllers
 
         // [Authorize]
         [HttpPost("ChangeProject")]
-        public async Task<bool> ChangeProject([FromForm]Project project, [FromForm]IFormFileCollection uploads, [FromForm] int[] deleteImages, [FromForm]int[] competenceIds)
+        public async Task<bool> ChangeProject([FromForm]Project project, [FromForm]IFormFileCollection uploads, 
+            [FromForm] int[] deleteImages, [FromForm]string[] competences, [FromForm]int[] competenceIds)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -206,6 +208,7 @@ namespace ProjectRecruting.Controllers
 
             await oldProj.AddImagesToDbSystem(_db, _appEnvironment, uploads);
             await Project.DeleteImagesFromDb(_db, oldProj.Id, deleteImages);
+            await oldProj.AddCompetences(_db, competences);
             await oldProj.DeleteCompetences(_db, competenceIds);
 
             return true;

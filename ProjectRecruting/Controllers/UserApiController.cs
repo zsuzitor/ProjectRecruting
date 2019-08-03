@@ -13,6 +13,7 @@ using ProjectRecruting.Models.Domain;
 
 namespace ProjectRecruting.Controllers
 {
+    [Produces("application/json")]
     [Route("api/User")]
     [ApiController]
     public class UserApiController : ControllerBase
@@ -31,6 +32,11 @@ namespace ProjectRecruting.Controllers
         [HttpPost("ChangeStatusStudentInProject")]
         public async Task<bool?> ChangeStatusStudentInProject([FromForm]int projectId, [FromForm]Models.StatusInProject newStatus)
         {
+            if (newStatus != StatusInProject.InProccessing && newStatus != StatusInProject.CanceledByStudent)
+            {
+                Response.StatusCode = 400;
+                return null;
+            }
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
 
             if (status != 0 || userId == null)
@@ -89,16 +95,25 @@ namespace ProjectRecruting.Controllers
         {
             List<CompetenceShort> res = new List<CompetenceShort>();
 
-            if (town == null)
+            int? townId = null;
+            if (town != null)
             {
-                //выбрать все проекты независимо от города
-                return await Competence.GetShortsData(_db, await Competence.GetActualIds(_db));
+                string townLower = town.ToLower().Trim();
+                var townDb = await Town.GetByName(_db, townLower);
+                if (townDb == null)
+                    return new List<CompetenceShort>();
+                townId = townDb.Id;
             }
-            string townLower = town.ToLower().Trim();
-            var townDb = await Town.GetByName(_db, townLower);
-            if (townDb == null)
-                return res;
-            return await Competence.GetActualShortEntityInTown(_db, townDb.Id);
+            //if (town == null)
+            //{
+            //    //выбрать все проекты независимо от города
+            //    return await Competence.GetShortsData(_db, await Competence.GetActualIds(_db));
+            //}
+            //string townLower = town.ToLower().Trim();
+            //var townDb = await Town.GetByName(_db, townLower);
+            //if (townDb == null)
+            //    return res;
+            return await Competence.GetActualShortEntityInTown(_db, townId);
 
 
         }
