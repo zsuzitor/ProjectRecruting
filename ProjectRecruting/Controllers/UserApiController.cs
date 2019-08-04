@@ -4,12 +4,14 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models;
 using ProjectRecruting.Models.Domain;
+using ProjectRecruting.Models.services;
 
 namespace ProjectRecruting.Controllers
 {
@@ -21,10 +23,12 @@ namespace ProjectRecruting.Controllers
         //подать заявку, отклонить заявку, просмотреть список актуальных проектов и список актуальных навыков для города или вообще
 
         readonly ApplicationDbContext _db = null;
+        readonly UserManager<ApplicationUser> _userManager = null;
 
-        public UserApiController(ApplicationDbContext db)
+        public UserApiController(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
         {
             _db = db;
+            _userManager = userManager;
         }
 
 
@@ -37,9 +41,11 @@ namespace ProjectRecruting.Controllers
         ///  /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
         /// <response code="404">проект не найден</response>
         /// <response code="400">переданы не валидные данные(статус))</response>
+        /// <response code="406">почта не подтверждена</response>
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(406)]
         [HttpPost("ChangeStatusStudentInProject")]
         public async Task<bool?> ChangeStatusStudentInProject([FromForm]int projectId, [FromForm]Models.StatusInProject newStatus)
         {
@@ -49,6 +55,13 @@ namespace ProjectRecruting.Controllers
                 return null;
             }
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
+            var user = await ApplicationUser.Get(_userManager,userId);
+            bool mailConfirmed = await _userManager.IsEmailConfirmedAsync(user);
+            if (!mailConfirmed)
+            {
+                Response.StatusCode = 406;
+                return null;
+            }
 
             if (status != 0 || userId == null)
             {

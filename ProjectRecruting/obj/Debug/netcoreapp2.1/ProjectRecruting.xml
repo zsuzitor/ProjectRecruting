@@ -35,7 +35,7 @@
             <response code="200"></response>
             <response code="400">переданы невалидные данные</response>
             <response code="404">ошибка при создании пользователя</response>
-            <response code="400">ошибка получения токена</response>
+            <response code="500">ошибка получения токена</response>
         </member>
         <member name="M:ProjectRecruting.Controllers.AccountApiController.RefreshToken(System.String)">
              <summary>
@@ -48,8 +48,16 @@
             refresh_token
             }
              </returns>
-             <response code="400">ошибка дешифрации токена, просрочен, изменен, не передан</response>
-             <response code="401">ошибка обновления токена</response>
+             <response code="401">ошибка дешифрации токена, просрочен, изменен, не передан</response>
+             <response code="404">ошибка обновления токена</response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.AccountApiController.ConfirmEmail(System.String,System.String)">
+            <summary>
+            
+            </summary>
+            <param name="userId"></param>
+            <param name="code"></param>
+            <returns></returns>
         </member>
         <member name="M:ProjectRecruting.Controllers.CompanyApiController.CreateCompany(ProjectRecruting.Models.Domain.Company,Microsoft.AspNetCore.Http.IFormFile[])">
             <summary>
@@ -66,13 +74,149 @@
             изменение компании
             </summary>
             <remarks>
-            ----
+            
             </remarks>
             <param name="company">данные компании</param>
             <param name="uploadedFile">новый аватар компании,если null то остается старый</param>
             <returns>bool?--true-добавлена, null-что то не так</returns>
             <response code="400">плохие данные</response>
             <response code="401">ошибка дешифрации токена, просрочен, изменен, не передан</response>
+            <response code="404">компания для изменения не найдена</response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.CompanyApiController.AddUserToCompany(System.Int32,System.String)">
+            <summary>
+            добавление управляющего в компанию
+            </summary>
+            <param name="companyId">id компании в которую добавляес пользователя</param>
+            <param name="newUserId">id пользователя которого добавляем</param>
+            <returns></returns>
+            <response code="401">. ошибка дешифрации токена, просрочен, изменен, не передан </response>
+            <response code="404">компания не найдена</response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.CompanyApiController.DeleteUserFromCompany(System.Int32,System.String)">
+            <summary>
+             удалить управляющего из компании
+            </summary>
+            <param name="companyId">id компании из которой удаляем</param>
+            <param name="newUserId">id пользователя которого удаляем</param>
+            <returns></returns>
+             /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+            <response code="404">компания не найдена</response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.CompanyApiController.CreateProject(ProjectRecruting.Models.Domain.Project,System.String[],System.String[],Microsoft.AspNetCore.Http.IFormFileCollection)">
+            <summary>
+            создание проекта
+            </summary>
+            <param name="project">данные проекта</param>
+            <param name="competences">список компетенций</param>
+            <param name="townNames">список названий городов</param>
+            <param name="uploads">изображения</param>
+            <returns></returns>
+            <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+            <response code="404">компания не найдена</response>
+            <response code="400">переданы не валидные данные</response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.CompanyApiController.ChangeProject(ProjectRecruting.Models.Domain.Project,Microsoft.AspNetCore.Http.IFormFileCollection,System.Int32[],System.String[],System.Int32[])">
+            <summary>
+            изменение проекта
+            </summary>
+            <param name="project">новые данные проекта</param>
+            <param name="uploads">изображения</param>
+            <param name="deleteImages">ids изображений для удаления</param>
+            <param name="competences">список названий компетенций</param>
+            <param name="competenceIds">список id компетенций для удаления</param>
+            <returns></returns>
+            <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+            <response code="404">проект не найден</response>
+            <response code="400">переданы не валидные данные</response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.CompanyApiController.ChangeStatusProject(System.Int32,ProjectRecruting.Models.StatusProject)">
+            <summary>
+            изменение статуса проекта
+            </summary>
+            <param name="projectId">id проекта</param>
+            <param name="newStatus">новый статус проекта</param>
+            <returns></returns>
+            <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+            <response code="404">проект не найден</response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.CompanyApiController.ChangeStatusStudent(System.Int32,System.String,ProjectRecruting.Models.StatusInProject)">
+            <summary>
+            изменение статуса студента в проекте(для управляющего проектом)
+            </summary>
+            <param name="projectId">id проекта</param>
+            <param name="studentId">id студента</param>
+            <param name="newStatus">новый статус студента enum-StatusInProject</param>
+            <returns></returns>
+            <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+            <response code="404">проект не найден</response>
+            
+        </member>
+        <member name="M:ProjectRecruting.Controllers.CompanyApiController.GetStudents(System.Int32,ProjectRecruting.Models.StatusInProject)">
+            <summary>
+            получить студентов проекта с определенным статусом
+            </summary>
+            <param name="projectId">id проекта</param>
+            <param name="status">статус студентаов для выборки enum-StatusInProject</param>
+            <returns></returns>
+            <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+            <response code="404">проект не найден</response>
+            <response code="400">переданы не валидные данные(статус))</response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.UserApiController.ChangeStatusStudentInProject(System.Int32,ProjectRecruting.Models.StatusInProject)">
+            <summary>
+            изменение(добавление, если ее нет) статуса студента в проекте(для студента)
+            </summary>
+            <param name="projectId">id проекта</param>
+            <param name="newStatus">статус проекта, enum-StatusInProject</param>
+            <returns>true-существующая запись обновлена, false-добавлена новая, null-сейчас не обрабатывается-произошла ошибка</returns>
+             /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+            <response code="404">проект не найден</response>
+            <response code="400">переданы не валидные данные(статус))</response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.UserApiController.GetActualProject(System.String)">
+            <summary>
+            просмотреть список актуальных проектов для города
+            </summary>
+            <param name="town">название города</param>
+            <returns></returns>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.UserApiController.GetActualCompetences(System.String)">
+            <summary>
+            список актуальных навыков для города
+            </summary>
+            <param name="town">название города</param>
+            <returns></returns>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.UserApiController.GetProjectsCompany(System.Int32,System.Nullable{System.Int32})">
+            <summary>
+            получить проекты компании
+            </summary>
+            <param name="companyId">id компании</param>
+            <param name="townId">id города</param>
+            <returns></returns>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.UserApiController.GetUserCompanys">
+            <summary>
+            получить компании пользователя
+            </summary>
+            <returns></returns>
+            <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.UserApiController.GetUserResponsibilityProjects">
+            <summary>
+            проекты за которые пользователь отвечает 
+            </summary>
+            <returns></returns>
+             <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.UserApiController.GetUserRequests(ProjectRecruting.Models.StatusInProject)">
+            <summary>
+            получить список проектов пользователя(в которые у него есть заявки) по определенному статусу
+            </summary>
+            <param name="statusInProject">статус в проекте enum-StatusInProject</param>
+            <returns></returns>
+             <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
         </member>
     </members>
 </doc>

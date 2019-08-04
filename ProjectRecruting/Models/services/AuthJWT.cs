@@ -13,7 +13,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ProjectRecruting.Models
+namespace ProjectRecruting.Models.services
 {
     public class AuthJWT
     {
@@ -153,6 +153,5 @@ namespace ProjectRecruting.Models
             }
             return null;
         }
-
     }
 }

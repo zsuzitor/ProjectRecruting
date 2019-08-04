@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models;
 using ProjectRecruting.Models.Domain;
+using ProjectRecruting.Models.services;
 
 namespace ProjectRecruting.Controllers
 {
@@ -46,6 +47,8 @@ namespace ProjectRecruting.Controllers
         /// </returns>
         /// <response code="200"></response>
         /// <response code="400">пользователь не найден</response>
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
         [AllowAnonymous]
         [HttpPost("Login")]
         public async Task Login([FromForm]string username, [FromForm]string password)
@@ -90,7 +93,11 @@ namespace ProjectRecruting.Controllers
         ///<response code="200"></response>
         ///<response code="400">переданы невалидные данные</response>
         ///<response code="404">ошибка при создании пользователя</response>
-        ///<response code="400">ошибка получения токена</response>
+        ///<response code="500">ошибка получения токена</response>
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
         [AllowAnonymous]
         [HttpPost("Register")]
         public async Task Register([FromForm]RegisterModel model)//, string confirmPassword
@@ -113,14 +120,25 @@ namespace ProjectRecruting.Controllers
             var identity = AuthJWT.GetIdentity(user);
             if (identity == null)
             {
-                Response.StatusCode = 400;
-                await Response.WriteAsync("Invalid username or password.");
+                Response.StatusCode = 500;
+               // await Response.WriteAsync("Invalid username or password.");
                 return;
             }
 
             var encodedJwt = AuthJWT.GenerateMainToken(identity);
             var encodedRefJwt = AuthJWT.GenerateRefreshToken();
             await user.SetRefreshToken(_db, encodedRefJwt);
+
+
+            var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var callbackUrl = Url.Action(
+                "ConfirmEmail",
+                "Account",
+                new { userId = user.Id, code = code },
+                protocol: HttpContext.Request.Scheme);
+            EmailService emailService = new EmailService();
+            await emailService.SendEmailAsync(model.Email, "Confirm your account",
+                $"Подтвердите регистрацию, перейдя по ссылке: <a href='{callbackUrl}'>link</a>");
 
             var response = new
             {
@@ -149,6 +167,8 @@ namespace ProjectRecruting.Controllers
         /// </returns>
         /// <response code="401">ошибка дешифрации токена, просрочен, изменен, не передан</response>
         /// <response code="404">ошибка обновления токена</response>
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
         [HttpPost("RefreshToken")]
         public async Task RefreshToken([FromForm]string refreshToken)//, string confirmPassword
         {
@@ -178,6 +198,41 @@ namespace ProjectRecruting.Controllers
             //return status.ToString();
 
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="code"></param>
+        /// <returns></returns>
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        [HttpGet("ConfirmEmail")]
+        //[AllowAnonymous]
+        public async Task ConfirmEmail(string userId, string code)
+        {
+            if (userId == null || code == null)
+            {
+                Response.StatusCode = 400;
+                return;
+            }
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                Response.StatusCode = 404;
+                return;
+            }
+            var result = await _userManager.ConfirmEmailAsync(user, code);
+            if (result.Succeeded)
+                Response.StatusCode = 200;
+            else
+                Response.StatusCode = 500;
+            return;
+        }
+
+
 
 
         //[HttpGet("Home")]

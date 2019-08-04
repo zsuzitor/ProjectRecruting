@@ -18,6 +18,7 @@ using Newtonsoft.Json;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models;
 using ProjectRecruting.Models.Domain;
+using ProjectRecruting.Models.services;
 
 namespace ProjectRecruting.Controllers
 {

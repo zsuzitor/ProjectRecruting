@@ -47,6 +47,12 @@ namespace ProjectRecruting.Models.Domain
 
         }
 
+        public async static Task<ApplicationUser> Get(UserManager<ApplicationUser> userManager, string userId)
+        {
+            return await userManager.FindByIdAsync(userId);
+            
+        }
+
         public async Task LoadProjectUsers(ApplicationDbContext db)
         {
             if (!db.Entry(this).Collection(x1 => x1.ProjectUsers).IsLoaded)

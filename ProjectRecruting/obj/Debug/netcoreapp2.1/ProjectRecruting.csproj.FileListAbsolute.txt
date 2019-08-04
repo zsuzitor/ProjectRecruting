@@ -37,6 +37,6 @@ E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\Razor\Areas\
 E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\Razor\Areas\Identity\Pages\_ValidationScriptsPartial.g.cshtml.cs
 E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\Razor\Areas\Identity\Pages\_ViewImports.g.cshtml.cs
 E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\ProjectRecruting.csprojAssemblyReference.cache
-E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\UserSecretsAssemblyInfo.cs
 E:\csharp\ProjectRecruting\ProjectRecruting\bin\Debug\netcoreapp2.1\ProjectRecruting.xml
 E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\ProjectRecruting.xml
+E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\UserSecretsAssemblyInfo.cs
