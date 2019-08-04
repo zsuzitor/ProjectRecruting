@@ -44,6 +44,8 @@ namespace ProjectRecruting.Controllers
         /// <returns>{ Id, Name }</returns>
         /// <response code="401">ошибка дешифрации токена, просрочен, изменен, не передан</response>
         /// <response code="400">переданы не валидные данные</response>
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
         [HttpPost("CreateCompany")]
         public async Task CreateCompany([FromForm]Company company, [FromForm]IFormFile[] uploadedFile = null)
         {
@@ -127,8 +129,19 @@ namespace ProjectRecruting.Controllers
             return true;//oldCompany
         }
 
+
+        /// <summary>
+        /// добавление управляющего в компанию
+        /// </summary>
+        /// <param name="companyId">id компании в которую добавляес пользователя</param>
+        /// <param name="newUserId">id пользователя которого добавляем</param>
+        /// <returns></returns>
+        /// <response code="401">. ошибка дешифрации токена, просрочен, изменен, не передан </response>
+        /// <response code="404">компания не найдена</response>
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
         [HttpPost("AddUserToCompany")]
-        public async Task<bool?> AddUserToCompany([FromForm]int companyId, string newUserId)
+        public async Task<bool?> AddUserToCompany([FromForm]int companyId, [FromForm] string newUserId)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -138,13 +151,27 @@ namespace ProjectRecruting.Controllers
             }
             var company = await Company.GetIfAccess(_db, userId, companyId);
             if (company == null)
+            {
+                Response.StatusCode = 404;
                 return null;
+            }
             return await company.AddHeadUser(_db, newUserId);
 
         }
 
+
+        /// <summary>
+        ///  удалить управляющего из компании
+        /// </summary>
+        /// <param name="companyId">id компании из которой удаляем</param>
+        /// <param name="newUserId">id пользователя которого удаляем</param>
+        /// <returns></returns>
+        ///  /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+        /// <response code="404">компания не найдена</response>
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
         [HttpPost("DeleteUserFromCompany")]
-        public async Task<bool?> DeleteUserFromCompany([FromForm]int companyId, string newUserId)
+        public async Task<bool?> DeleteUserFromCompany([FromForm]int companyId, [FromForm] string newUserId)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -154,14 +181,29 @@ namespace ProjectRecruting.Controllers
             }
             var company = await Company.GetIfAccess(_db, userId, companyId);
             if (company == null)
+            {
+                Response.StatusCode = 404;
                 return null;
+            }
             return await company.DeleteHeadUser(_db, newUserId);
 
         }
 
 
-
-        // [Authorize]
+        /// <summary>
+        /// создание проекта
+        /// </summary>
+        /// <param name="project">данные проекта</param>
+        /// <param name="competences">список компетенций</param>
+        /// <param name="townNames">список названий городов</param>
+        /// <param name="uploads">изображения</param>
+        /// <returns></returns>
+        /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+        /// <response code="404">компания не найдена</response>
+        /// <response code="400">переданы не валидные данные</response>
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
         [HttpPost("CreateProject")]
         public async Task<int?> CreateProject([FromForm]Project project, [FromForm]string[] competences, [FromForm]string[] townNames, [FromForm]IFormFileCollection uploads = null)
         {
@@ -199,7 +241,22 @@ namespace ProjectRecruting.Controllers
 
         }
 
-        // [Authorize]
+
+        /// <summary>
+        /// изменение проекта
+        /// </summary>
+        /// <param name="project">новые данные проекта</param>
+        /// <param name="uploads">изображения</param>
+        /// <param name="deleteImages">ids изображений для удаления</param>
+        /// <param name="competences">список названий компетенций</param>
+        /// <param name="competenceIds">список id компетенций для удаления</param>
+        /// <returns></returns>
+        /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+        /// <response code="404">проект не найден</response>
+        /// <response code="400">переданы не валидные данные</response>
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
         [HttpPost("ChangeProject")]
         public async Task<bool> ChangeProject([FromForm]Project project, [FromForm]IFormFileCollection uploads,
             [FromForm] int[] deleteImages, [FromForm]string[] competences, [FromForm]int[] competenceIds)
@@ -237,8 +294,16 @@ namespace ProjectRecruting.Controllers
 
 
 
-        //меняет статус проекта на новый
-        // [Authorize]
+        /// <summary>
+        /// изменение статуса проекта
+        /// </summary>
+        /// <param name="projectId">id проекта</param>
+        /// <param name="newStatus">новый статус проекта</param>
+        /// <returns></returns>
+        /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+        /// <response code="404">проект не найден</response>
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
         [HttpPost("ChangeStatusProject")]
         public async Task<bool> ChangeStatusProject([FromForm]int projectId, [FromForm]StatusProject newStatus)
         {
@@ -259,11 +324,26 @@ namespace ProjectRecruting.Controllers
             return true;
         }
 
-
-        // [Authorize]
+        /// <summary>
+        /// изменение статуса студента в проекте(для управляющего проектом)
+        /// </summary>
+        /// <param name="projectId">id проекта</param>
+        /// <param name="studentId">id студента</param>
+        /// <param name="newStatus">новый статус студента enum-StatusInProject</param>
+        /// <returns></returns>
+        /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+        /// <response code="404">проект не найден</response>
+        /// 
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
         [HttpPost("ChangeStatusStudent")]
         public async Task<bool> ChangeStatusStudent([FromForm]int projectId, [FromForm]string studentId, [FromForm]StatusInProject newStatus)
         {
+            if (newStatus != StatusInProject.InProccessing && newStatus != StatusInProject.Canceled && newStatus != StatusInProject.Approved)
+            {
+                Response.StatusCode = 400;
+                return false;
+            }
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
             {
@@ -278,19 +358,33 @@ namespace ProjectRecruting.Controllers
                 return false;
             }
 
-            return await proj.ChangeStatusUser(_db, newStatus, studentId);
+            return await proj.ChangeStatusUserByLead(_db, newStatus, studentId);
         }
 
 
 
 
-        //[Authorize]
+        /// <summary>
+        /// получить студентов проекта с определенным статусом
+        /// </summary>
+        /// <param name="projectId">id проекта</param>
+        /// <param name="status">статус студентаов для выборки enum-StatusInProject</param>
+        /// <returns></returns>
+        /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+        /// <response code="404">проект не найден</response>
+        /// <response code="400">переданы не валидные данные(статус))</response>
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
         [HttpGet("GetStudents")]
         public async Task GetStudents([FromForm]int projectId, [FromForm] StatusInProject status)
         {
 
             if (status != StatusInProject.Approved && status != StatusInProject.Canceled && status != StatusInProject.InProccessing)
+            {
+                Response.StatusCode = 400;
                 return;// null;
+            }
 
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)

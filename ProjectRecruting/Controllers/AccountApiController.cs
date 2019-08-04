@@ -147,8 +147,8 @@ namespace ProjectRecruting.Controllers
         ///refresh_token
         ///}
         /// </returns>
-        /// <response code="400">ошибка дешифрации токена, просрочен, изменен, не передан</response>
-        /// <response code="401">ошибка обновления токена</response>
+        /// <response code="401">ошибка дешифрации токена, просрочен, изменен, не передан</response>
+        /// <response code="404">ошибка обновления токена</response>
         [HttpPost("RefreshToken")]
         public async Task RefreshToken([FromForm]string refreshToken)//, string confirmPassword
         {
@@ -156,13 +156,13 @@ namespace ProjectRecruting.Controllers
 
             if ((status != 0 && status != 1) || userId == null)
             {
-                Response.StatusCode = 400;
+                Response.StatusCode = 401;
                 return;
             }
             var tokens = await AuthJWT.Refresh(_db, userId, refreshToken);
             if (tokens == null)
             {
-                Response.StatusCode = 401;
+                Response.StatusCode = 404;
                 return;
             }
             var response = new

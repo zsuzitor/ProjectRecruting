@@ -125,6 +125,19 @@ namespace ProjectRecruting.Models.Domain
             return true;
         }
 
+        //измнение руководителем, дополнительная валидация
+        public async Task<bool> ChangeStatusUserByLead(ApplicationDbContext db, StatusInProject newStatus, string userId)
+        {
+            var record = await db.Entry(this).Collection(x1 => x1.ProjectUsers).Query().FirstOrDefaultAsync(x1 => x1.UserId == userId);
+            if (record == null)
+                return false;
+            if (record.Status == StatusInProject.CanceledByStudent || record.Status == StatusInProject.Not)
+                return false;
+            record.Status = newStatus;
+            await db.SaveChangesAsync();
+            return true;
+        }
+
 
         //создает если надо и изменяет запись .(если записи нет то создаст ее.) у записи будет переданный статус
         public async Task<bool> CreateChangeStatusUser(ApplicationDbContext db, StatusInProject newStatus, string userId)

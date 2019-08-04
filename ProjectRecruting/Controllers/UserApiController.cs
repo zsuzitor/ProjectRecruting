@@ -27,8 +27,19 @@ namespace ProjectRecruting.Controllers
             _db = db;
         }
 
-        //true-существующая запись обновлена, false-добавлена новая, null-сейчас не обрабатывается-произошла ошибка
-        //оставить\обновить заявку пользователя на проект
+
+        /// <summary>
+        /// изменение(добавление, если ее нет) статуса студента в проекте(для студента)
+        /// </summary>
+        /// <param name="projectId">id проекта</param>
+        /// <param name="newStatus">статус проекта, enum-StatusInProject</param>
+        /// <returns>true-существующая запись обновлена, false-добавлена новая, null-сейчас не обрабатывается-произошла ошибка</returns>
+        ///  /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+        /// <response code="404">проект не найден</response>
+        /// <response code="400">переданы не валидные данные(статус))</response>
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
         [HttpPost("ChangeStatusStudentInProject")]
         public async Task<bool?> ChangeStatusStudentInProject([FromForm]int projectId, [FromForm]Models.StatusInProject newStatus)
         {
@@ -54,7 +65,12 @@ namespace ProjectRecruting.Controllers
         }
 
 
-        //просмотреть список актуальных проектов для города #TODO надо подсвечивать куда подал заявку
+
+        /// <summary>
+        /// просмотреть список актуальных проектов для города
+        /// </summary>
+        /// <param name="town">название города</param>
+        /// <returns></returns>
         [HttpGet("GetActualProject")]
         public async Task GetActualProject([FromForm]string town)//<List<ProjectShort>>
         {
@@ -90,7 +106,12 @@ namespace ProjectRecruting.Controllers
         //}
 
 
-        //список актуальных навыков для города
+
+        /// <summary>
+        /// список актуальных навыков для города
+        /// </summary>
+        /// <param name="town">название города</param>
+        /// <returns></returns>
         [HttpGet("GetActualCompetences")]
         public async Task GetActualCompetences([FromForm]string town)
         {
@@ -105,15 +126,7 @@ namespace ProjectRecruting.Controllers
                     return;// new List<CompetenceShort>();
                 townId = townDb.Id;
             }
-            //if (town == null)
-            //{
-            //    //выбрать все проекты независимо от города
-            //    return await Competence.GetShortsData(_db, await Competence.GetActualIds(_db));
-            //}
-            //string townLower = town.ToLower().Trim();
-            //var townDb = await Town.GetByName(_db, townLower);
-            //if (townDb == null)
-            //    return res;
+
             var res = await Competence.GetActualShortEntityInTown(_db, townId);
 
             //return await Competence.GetActualShortEntityInTown(_db, townId);
@@ -123,7 +136,12 @@ namespace ProjectRecruting.Controllers
 
         }
 
-
+        /// <summary>
+        /// получить проекты компании
+        /// </summary>
+        /// <param name="companyId">id компании</param>
+        /// <param name="townId">id города</param>
+        /// <returns></returns>
         [HttpGet("GetProjectsCompany")]
         public async Task GetProjectsCompany([FromForm]int companyId, [FromForm]int? townId)
         {
@@ -133,7 +151,13 @@ namespace ProjectRecruting.Controllers
 
         }
 
+        /// <summary>
+        /// получить компании пользователя
+        /// </summary>
+        /// <returns></returns>
+        /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
 
+        [ProducesResponseType(401)]
         [HttpGet("GetUserCompanys")]
         public async Task GetUserCompanys()
         {
@@ -150,7 +174,13 @@ namespace ProjectRecruting.Controllers
 
         }
 
-        //проекты за которые пользователь отвечает
+
+        /// <summary>
+        /// проекты за которые пользователь отвечает 
+        /// </summary>
+        /// <returns></returns>
+        ///  <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+        [ProducesResponseType(401)]
         [HttpGet("GetUserResponsibilityProjects")]
         public async Task GetUserResponsibilityProjects()
         {
@@ -166,7 +196,13 @@ namespace ProjectRecruting.Controllers
 
         }
 
-
+        /// <summary>
+        /// получить список проектов пользователя(в которые у него есть заявки) по определенному статусу
+        /// </summary>
+        /// <param name="statusInProject">статус в проекте enum-StatusInProject</param>
+        /// <returns></returns>
+        ///  <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+        [ProducesResponseType(401)]
         [HttpGet("GetUserRequests")]
         public async Task GetUserRequests([FromForm] StatusInProject statusInProject)
         {
