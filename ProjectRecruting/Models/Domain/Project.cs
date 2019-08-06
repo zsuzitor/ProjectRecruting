@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
 namespace ProjectRecruting.Models.Domain
@@ -23,6 +24,10 @@ namespace ProjectRecruting.Models.Domain
 
         //заявки можнпо подавать только если проект не начат или начат но не закончен
         public StatusProject Status { get; set; }
+
+
+        [Timestamp]
+        public byte[] RowVersion { get; set; }
 
         [Required(ErrorMessage = "Не указан id компании")]
         public int CompanyId { get; set; }
@@ -40,6 +45,10 @@ namespace ProjectRecruting.Models.Domain
         {
             Status = StatusProject.NotStarted;
             Payment = null;
+            CompetenceProjects = new List<CompetenceProject>();
+            ProjectUsers = new List<ProjectUser>();
+            ProjectTowns = new List<ProjectTown>();
+            Images = new List<Image>();
         }
 
         public Project(string name, string description, bool? payment, int companyId) : this()
@@ -54,28 +63,60 @@ namespace ProjectRecruting.Models.Domain
         //НЕ загрузит их в сущность, только добавит в бд
         public async Task<List<Image>> AddImagesToDbSystem(ApplicationDbContext db, IHostingEnvironment appEnvironment, IFormFileCollection images)
         {
-            //Tuple<>
             List<Image> res = new List<Image>();
-            //var imgs = Image.GetBytes(images);
-            if (images != null && images.Count > 0)
+            if (images == null)
+                return res;
+            foreach (var i in images)
             {
-
-                foreach (var i in images)
-                    res.Add(new Image() { ProjectId = this.Id });
-                db.Images.AddRange(res);
-                await db.SaveChangesAsync();
-
-                for (var i = 0; i < images.Count; ++i)
+                if (i == null)
+                    continue;
+                //i.FileName
+                byte[] bytes = null;
+                using (var binaryReader = new BinaryReader(i.OpenReadStream()))
                 {
-                    string path = "/images/uploads/project_" + this.Id + "_" + res[i].Id;// + uploadedFile[0].FileName;
-                                                                                         // сохраняем файл в папку Files в каталоге wwwroot
-                    using (var fileStream = new FileStream(appEnvironment.WebRootPath + path, FileMode.Create))
-                    {
-                        await images[i].CopyToAsync(fileStream);
-                    }
+                    bytes = binaryReader.ReadBytes((int)i.Length);
                 }
+                bool isImage = Image.IsImage(bytes);
+                if (!isImage)
+                    continue;
+                Image img = new Image() { ProjectId = this.Id };
+                db.Images.Add(img);
+                await db.SaveChangesAsync();
+                res.Add(img);
 
+                var fileName = ContentDispositionHeaderValue.Parse(i.ContentDisposition).FileName.Trim('"');
+                //получаем формат
+                var FileExtension = Path.GetExtension(fileName);
+                using (var fileStream = new FileStream(appEnvironment.WebRootPath + "/images/uploads/project_" + this.Id + "_" + img.Id+ FileExtension, FileMode.Create))
+                {
+                    await fileStream.WriteAsync(bytes);
+                    // await uploadedFile[0].CopyToAsync(fileStream);
+                }
             }
+
+
+            ////Tuple<>
+            
+            ////var imgs = Image.GetBytes(images);
+            //if (images != null && images.Count > 0)
+            //{
+
+            //    foreach (var i in images)
+            //        res.Add(new Image() { ProjectId = this.Id });
+            //    db.Images.AddRange(res);
+            //    await db.SaveChangesAsync();
+
+            //    for (var i = 0; i < images.Count; ++i)
+            //    {
+            //        string path = "/images/uploads/project_" + this.Id + "_" + res[i].Id;// + uploadedFile[0].FileName;
+            //                                                                             // сохраняем файл в папку Files в каталоге wwwroot
+            //        using (var fileStream = new FileStream(appEnvironment.WebRootPath + path, FileMode.Create))
+            //        {
+            //            await images[i].CopyToAsync(fileStream);
+            //        }
+            //    }
+
+            //}
 
             return res;
         }
@@ -126,33 +167,38 @@ namespace ProjectRecruting.Models.Domain
         }
 
         //измнение руководителем, дополнительная валидация
-        public async Task<bool> ChangeStatusUserByLead(ApplicationDbContext db, StatusInProject newStatus, string userId)
+        public async Task<bool?> ChangeStatusUserByLead(ApplicationDbContext db, StatusInProject newStatus, string userId)
         {
             var record = await db.Entry(this).Collection(x1 => x1.ProjectUsers).Query().FirstOrDefaultAsync(x1 => x1.UserId == userId);
             if (record == null)
                 return false;
             if (record.Status == StatusInProject.CanceledByStudent || record.Status == StatusInProject.Not)
                 return false;
-            record.Status = newStatus;
-            await db.SaveChangesAsync();
+            if (!await record.ChangeStatus(db, newStatus))
+                return null;
             return true;
         }
 
 
         //создает если надо и изменяет запись .(если записи нет то создаст ее.) у записи будет переданный статус
-        public async Task<bool> CreateChangeStatusUser(ApplicationDbContext db, StatusInProject newStatus, string userId)
+        //null-если ошибка 
+        public async Task<bool?> CreateChangeStatusUser(ApplicationDbContext db, StatusInProject newStatus, string userId)
         {
             bool exists = false;
             var record = await db.Entry(this).Collection(x1 => x1.ProjectUsers).Query().FirstOrDefaultAsync(x1 => x1.UserId == userId);
             if (record == null)
+            {
                 db.ProjectUsers.Add(new ProjectUser(userId, this.Id, newStatus));
+                await db.SaveChangesAsync();
+            }
             else
             {
                 exists = true;
-                record.Status = newStatus;
+                if (!await record.ChangeStatus(db, newStatus))
+                    return null;
             }
+          
 
-            await db.SaveChangesAsync();
             return exists;
         }
 
@@ -160,26 +206,7 @@ namespace ProjectRecruting.Models.Domain
         //добавление без валидации
         public async Task<List<Competence>> AddCompetences(ApplicationDbContext db, string[] competences)
         {
-            //List<Competence> res = new List<Competence>();
-            if (competences == null || competences.Length == 0)
-                return new List<Competence>();
-            var competencesList = competences.Select(x1 => x1.ToLower().Trim()).ToList();
-            var existsCompetences = await db.Competences.Where(x1 => competencesList.Contains(x1.Name)).ToListAsync();
-            //db.CompetenceProjects.Where(x1=> existsCompetences.Contains(x1));
-
-
-            existsCompetences.ForEach((x) =>
-            {
-                if (competencesList.Contains(x.Name))
-                    competencesList.Remove(x.Name);
-            });
-            //competencesList.Remove(existsCompetences.Where(x1=> competencesList.Contains(x1.Name)));
-            List<Competence> needAdded = competencesList.Select(x1 => new Competence(x1)).ToList();
-            db.Competences.AddRange(needAdded);
-            await db.SaveChangesAsync();
-
-
-            needAdded.AddRange(existsCompetences);
+            var needAdded = await Competence.CreateInDbIfNeed(db,competences);
 
             List<CompetenceProject> forAddedRelation = new List<CompetenceProject>();
             needAdded.ForEach(x =>
@@ -285,17 +312,49 @@ namespace ProjectRecruting.Models.Domain
             await ProjectShort.SetMainImages(db, projs);
             if (string.IsNullOrWhiteSpace(userId))
                 return projs;
-            var status = await db.ProjectUsers.Where(x1 => x1.UserId == userId && projs.FirstOrDefault(x2 => x2.ProjectId == x1.ProjectId) != null).ToListAsync();
-            status.ForEach(x1 =>
-            {
-                var tmp = projs.FirstOrDefault(x2 => x2.ProjectId == x1.ProjectId);
-                if (tmp != null)
-                    tmp.Status = x1.Status;
-            });
+            await Project.SetUserStatusInProject(db, projs, userId);
+            //var status = await db.ProjectUsers.Where(x1 => x1.UserId == userId && projs.FirstOrDefault(x2 => x2.ProjectId == x1.ProjectId) != null).ToListAsync();
+            //status.ForEach(x1 =>
+            //{
+            //    var tmp = projs.FirstOrDefault(x2 => x2.ProjectId == x1.ProjectId);
+            //    if (tmp != null)
+            //        tmp.Status = x1.Status;
+            //});
             return projs;
         }
 
-        public async static Task<List<int>> SortByActual(ApplicationDbContext db)
+        public async static Task<List<ProjectShort>> GetByStartName(ApplicationDbContext db, int? townId, string userId,string name)
+        {
+            var projs = await Project.GetActualQueryEntityInTown(db, townId).Where(x1=>x1.Name.Contains(name)).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            await ProjectShort.SetMainImages(db, projs);
+            if (string.IsNullOrWhiteSpace(userId))
+                return projs;
+            await Project.SetUserStatusInProject(db,projs,userId);
+
+            //var status = await db.ProjectUsers.Where(x1 => x1.UserId == userId && projs.FirstOrDefault(x2 => x2.ProjectId == x1.ProjectId) != null).ToListAsync();
+            //status.ForEach(x1 =>
+            //{
+            //    var tmp = projs.FirstOrDefault(x2 => x2.ProjectId == x1.ProjectId);
+            //    if (tmp != null)
+            //        tmp.Status = x1.Status;
+            //});
+            return projs;
+        }
+
+
+        public async static Task SetUserStatusInProject(ApplicationDbContext db, List<ProjectShort> projects, string userId)
+        {
+            var status = await db.ProjectUsers.Where(x1 => x1.UserId == userId && projects.FirstOrDefault(x2 => x2.ProjectId == x1.ProjectId) != null).ToListAsync();
+            status.ForEach(x1 =>
+            {
+                var tmp = projects.FirstOrDefault(x2 => x2.ProjectId == x1.ProjectId);
+                if (tmp != null)
+                    tmp.Status = x1.Status;
+            });
+        }
+
+
+            public async static Task<List<int>> SortByActual(ApplicationDbContext db)
         {
             return await db.ProjectUsers.GroupBy(x1 => x1.ProjectId).OrderBy(x1 => x1.Count()).Select(x1 => x1.Key).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
         }

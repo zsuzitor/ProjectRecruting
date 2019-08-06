@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models.Domain.ManyToMany;
@@ -9,6 +8,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
 namespace ProjectRecruting.Models.Domain
@@ -22,6 +22,10 @@ namespace ProjectRecruting.Models.Domain
         public string Number { get; set; }
         public string Email { get; set; }
 
+
+        [Timestamp]
+        public byte[] RowVersion { get; set; }
+
         //public string Image { get; set; }
 
         //люди которые могут изменять компанию
@@ -31,6 +35,8 @@ namespace ProjectRecruting.Models.Domain
         public Company()
         {
             //Image = null;
+            CompanyUsers = new List<CompanyUser>();
+            Projects = new List<Project>();
         }
         public Company(string name, string description, string number, string email)
         {
@@ -63,15 +69,22 @@ namespace ProjectRecruting.Models.Domain
 
         public async Task SetImage(IFormFile[] uploadedFile, IHostingEnvironment appEnvironment)
         {
-            if (uploadedFile != null && uploadedFile.Length > 0)
-            {
-                string path = "/images/uploads/company_" + this.Id + "_mainimage";// + uploadedFile[0].FileName;
-                // сохраняем файл в папку Files в каталоге wwwroot
-                using (var fileStream = new FileStream(appEnvironment.WebRootPath + path, FileMode.Create))
-                {
-                    await uploadedFile[0].CopyToAsync(fileStream);
-                }
-            }
+            if (uploadedFile == null || uploadedFile.Length == 0)
+                return;
+            var fileName = ContentDispositionHeaderValue.Parse(uploadedFile[0].ContentDisposition).FileName.Trim('"');
+            //получаем формат
+            var FileExtension = Path.GetExtension(fileName);
+            string path = appEnvironment.WebRootPath + "/images/uploads/company_" + this.Id + "_mainimage"+ FileExtension;// + uploadedFile[0].FileName; #TODO формат файла
+            await Image.CheckAndCreate(uploadedFile, path);
+            //if (uploadedFile != null && uploadedFile.Length > 0)
+            //{
+                
+            //    // сохраняем файл в папку Files в каталоге wwwroot
+            //    using (var fileStream = new FileStream(appEnvironment.WebRootPath + path, FileMode.Create))
+            //    {
+            //        await uploadedFile[0].CopyToAsync(fileStream);
+            //    }
+            //}
         }
 
 

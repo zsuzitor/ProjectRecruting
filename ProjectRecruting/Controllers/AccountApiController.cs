@@ -1,14 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Primitives;
-using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models;
@@ -121,7 +117,7 @@ namespace ProjectRecruting.Controllers
             if (identity == null)
             {
                 Response.StatusCode = 500;
-               // await Response.WriteAsync("Invalid username or password.");
+                // await Response.WriteAsync("Invalid username or password.");
                 return;
             }
 
@@ -232,8 +228,18 @@ namespace ProjectRecruting.Controllers
             return;
         }
 
+        /// <summary>
+        /// удаляет refresh token из бд
+        /// </summary>
+        /// <param name="userId">id пользователя</param>
+        /// <param name="refreshToken">refresh token</param>
+        /// <returns></returns>
+        [HttpPost("LogOut")]
+        public async Task<bool> LogOut([FromForm]string userId, [FromForm] string refreshToken)
+        {
+            return await AuthJWT.DeleteRefreshTokenFromDb(_db, userId, refreshToken);
 
-
+        }
 
         //[HttpGet("Home")]
         //public string Home()//, string confirmPassword

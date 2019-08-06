@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace ProjectRecruting.Migrations
 {
-    public partial class jwt1 : Migration
+    public partial class parallelDb : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -42,7 +42,8 @@ namespace ProjectRecruting.Migrations
                     LockoutEnabled = table.Column<bool>(nullable: false),
                     AccessFailedCount = table.Column<int>(nullable: false),
                     Name = table.Column<string>(nullable: true),
-                    SurName = table.Column<string>(nullable: true)
+                    SurName = table.Column<string>(nullable: true),
+                    RefreshTokenHash = table.Column<int>(nullable: false)
                 },
                 constraints: table =>
                 {
@@ -59,7 +60,7 @@ namespace ProjectRecruting.Migrations
                     Description = table.Column<string>(nullable: true),
                     Number = table.Column<string>(nullable: true),
                     Email = table.Column<string>(nullable: true),
-                    Image = table.Column<byte[]>(nullable: true)
+                    RowVersion = table.Column<byte[]>(rowVersion: true, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -234,6 +235,7 @@ namespace ProjectRecruting.Migrations
                     Description = table.Column<string>(nullable: true),
                     Payment = table.Column<bool>(nullable: true),
                     Status = table.Column<int>(nullable: false),
+                    RowVersion = table.Column<byte[]>(rowVersion: true, nullable: true),
                     CompanyId = table.Column<int>(nullable: false)
                 },
                 constraints: table =>
@@ -279,7 +281,6 @@ namespace ProjectRecruting.Migrations
                 {
                     Id = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn),
-                    Data = table.Column<byte[]>(nullable: true),
                     ProjectId = table.Column<int>(nullable: false)
                 },
                 constraints: table =>
@@ -326,6 +327,7 @@ namespace ProjectRecruting.Migrations
                     Id = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn),
                     Status = table.Column<int>(nullable: false),
+                    RowVersion = table.Column<byte[]>(rowVersion: true, nullable: true),
                     UserId = table.Column<string>(nullable: true),
                     ProjectId = table.Column<int>(nullable: false)
                 },

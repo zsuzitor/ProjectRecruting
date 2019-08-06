@@ -63,27 +63,6 @@ namespace ProjectRecruting
             //services.AddTransient<UserManager<ApplicationUser>>();
 
 
-            //JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear(); // => remove default claims
-            //services
-            //    .AddAuthentication(options =>
-            //    {
-            //        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            //        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-            //        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-
-            //    })
-            //    .AddJwtBearer(cfg =>
-            //    {
-            //        cfg.RequireHttpsMetadata = false;
-            //        cfg.SaveToken = true;
-            //        cfg.TokenValidationParameters = new TokenValidationParameters
-            //        {
-            //            ValidIssuer = AuthJWT.ISSUER,
-            //            ValidAudience = AuthJWT.ISSUER,
-            //            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(AuthJWT.KEY)),
-            //            ClockSkew = TimeSpan.Zero // remove delay of token when expire
-            //        };
-            //    });
 
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -111,12 +90,7 @@ namespace ProjectRecruting
                        };
                    });
 
-            //services.AddAuthorization(options =>
-            //{
-            //    options.DefaultPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
-            //    .RequireAuthenticatedUser()
-            //    .Build();
-            //});
+          
 
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);

@@ -110,7 +110,17 @@ namespace ProjectRecruting.Models.services
             return new Tuple<string, string>(AuthJWT.GenerateMainToken(AuthJWT.GetIdentity(user)), refToken);
         }
 
+        public async static Task<bool> DeleteRefreshTokenFromDb(ApplicationDbContext db, string userId, string refreshToken)
+        {
+            int hashToken = refreshToken.GetHashCode();
+            var user = await db.Users.FirstOrDefaultAsync(x1 => x1.Id == userId && x1.RefreshTokenHash == hashToken);
+            if (user == null)
+                return false;
+            user.RefreshTokenHash = null;
+            await db.SaveChangesAsync();
+            return true;
 
+        }
 
         public static ClaimsPrincipal DecodeToken(StringValues authorizationToken, out SecurityToken tokenSecure)
         {

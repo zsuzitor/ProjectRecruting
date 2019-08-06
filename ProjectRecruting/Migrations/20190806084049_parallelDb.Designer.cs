@@ -10,8 +10,8 @@ using ProjectRecruting.Data;
 namespace ProjectRecruting.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20190729095401_jwt1")]
-    partial class jwt1
+    [Migration("20190806084049_parallelDb")]
+    partial class parallelDb
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -164,6 +164,8 @@ namespace ProjectRecruting.Migrations
 
                     b.Property<bool>("PhoneNumberConfirmed");
 
+                    b.Property<int>("RefreshTokenHash");
+
                     b.Property<string>("SecurityStamp");
 
                     b.Property<string>("SurName");
@@ -196,12 +198,14 @@ namespace ProjectRecruting.Migrations
 
                     b.Property<string>("Email");
 
-                    b.Property<byte[]>("Image");
-
                     b.Property<string>("Name")
                         .IsRequired();
 
                     b.Property<string>("Number");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate();
 
                     b.HasKey("Id");
 
@@ -226,8 +230,6 @@ namespace ProjectRecruting.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<byte[]>("Data");
 
                     b.Property<int>("ProjectId");
 
@@ -303,6 +305,10 @@ namespace ProjectRecruting.Migrations
 
                     b.Property<int>("ProjectId");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate();
+
                     b.Property<int>("Status");
 
                     b.Property<string>("UserId");
@@ -330,6 +336,10 @@ namespace ProjectRecruting.Migrations
                         .IsRequired();
 
                     b.Property<bool?>("Payment");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate();
 
                     b.Property<int>("Status");
 

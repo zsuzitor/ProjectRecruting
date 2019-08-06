@@ -15,16 +15,44 @@ namespace ProjectRecruting.Models.Domain
 
 
         public List<CompetenceProject> CompetenceProjects { get; set; }
+        public List<CompetenceUser> CompetenceUsers { get; set; }
 
         public Competence()
         {
-
+            CompetenceProjects = new List<CompetenceProject>();
+            CompetenceUsers = new List<CompetenceUser>();
         }
 
         public Competence(string name) : this()
         {
             Name = name;
         }
+
+        public async static Task<List<Competence>> CreateInDbIfNeed(ApplicationDbContext db, string[] competences)
+        {
+            //List<Competence> res = new List<Competence>();
+            if (competences == null || competences.Length == 0)
+                return new List<Competence>();
+            var competencesList = competences.Select(x1 => x1.ToLower().Trim()).ToList();
+            var existsCompetences = await db.Competences.Where(x1 => competencesList.Contains(x1.Name)).ToListAsync();
+            //db.CompetenceProjects.Where(x1=> existsCompetences.Contains(x1));
+
+
+            existsCompetences.ForEach((x) =>
+            {
+                if (competencesList.Contains(x.Name))
+                    competencesList.Remove(x.Name);
+            });
+            //competencesList.Remove(existsCompetences.Where(x1=> competencesList.Contains(x1.Name)));
+            List<Competence> needAdded = competencesList.Select(x1 => new Competence(x1)).ToList();
+            db.Competences.AddRange(needAdded);
+            await db.SaveChangesAsync();
+
+
+            needAdded.AddRange(existsCompetences);
+            return needAdded;
+        }
+
 
         public async static Task<List<int>> SortByActual(ApplicationDbContext db, List<int> competenceIds)
         {

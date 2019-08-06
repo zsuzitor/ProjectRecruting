@@ -173,6 +173,7 @@
              /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
             <response code="404">проект не найден</response>
             <response code="400">переданы не валидные данные(статус))</response>
+            <response code="406">почта не подтверждена</response>
         </member>
         <member name="M:ProjectRecruting.Controllers.UserApiController.GetActualProject(System.String)">
             <summary>
@@ -217,6 +218,14 @@
             <param name="statusInProject">статус в проекте enum-StatusInProject</param>
             <returns></returns>
              <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.UserApiController.GetProjectByContainsName(System.String,System.Nullable{System.Int32})">
+            <summary>
+            получить список актуальных проектов название которых содержит  projectName
+            </summary>
+            <param name="projectName">строка вхождение которой ищем</param>
+            <param name="townId">id города</param>
+            <returns></returns>
         </member>
     </members>
 </doc>

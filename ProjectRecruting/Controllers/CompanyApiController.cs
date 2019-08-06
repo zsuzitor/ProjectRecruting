@@ -1,19 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Linq;
-using System.Security.Claims;
-using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Primitives;
-using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models;
@@ -92,9 +84,11 @@ namespace ProjectRecruting.Controllers
         /// <response code="400">плохие данные</response>
         /// <response code="401">ошибка дешифрации токена, просрочен, изменен, не передан</response>
         /// <response code="404">компания для изменения не найдена</response>
+        /// <response code="527">параллельный запрос уже изменил данные</response>
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(527)]
         [HttpPost("ChangeCompany")]
         public async Task<bool?> ChangeCompany([FromForm]Company company, [FromForm] IFormFile[] uploadedFile = null)
         {
@@ -123,10 +117,19 @@ namespace ProjectRecruting.Controllers
                 return null;
             }
             //byte[] newImage = null;
-            await oldCompany.SetImage(uploadedFile, _appEnvironment);
 
-            oldCompany.ChangeData(company.Name, company.Description, company.Number, company.Email);//, company.Image);
-            await _db.SaveChangesAsync();
+            try
+            {
+                oldCompany.ChangeData(company.Name, company.Description, company.Number, company.Email);//, company.Image);
+                await _db.SaveChangesAsync();
+                await oldCompany.SetImage(uploadedFile, _appEnvironment);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                Response.StatusCode = 527;
+                return null;
+            }
+
             return true;//oldCompany
         }
 
@@ -255,9 +258,11 @@ namespace ProjectRecruting.Controllers
         /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
         /// <response code="404">проект не найден</response>
         /// <response code="400">переданы не валидные данные</response>
+        /// <response code="527">параллельный запрос уже изменил данные</response>
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(527)]
         [HttpPost("ChangeProject")]
         public async Task<bool> ChangeProject([FromForm]Project project, [FromForm]IFormFileCollection uploads,
             [FromForm] int[] deleteImages, [FromForm]string[] competences, [FromForm]int[] competenceIds)
@@ -281,13 +286,33 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return false;
             }
-            oldProj.ChangeData(project.Name, project.Description, project.Payment);
-            await _db.SaveChangesAsync();
+
+            using (var tranzaction = _db.Database.BeginTransaction())
+            {
+                try
+                {
+
+                    oldProj.ChangeData(project.Name, project.Description, project.Payment);
+                    await _db.SaveChangesAsync();
+                    await oldProj.AddCompetences(_db, competences);
+                    await oldProj.DeleteCompetences(_db, competenceIds);
+                    await Project.DeleteImagesFromDb(_db, oldProj.Id, deleteImages);
+                    tranzaction.Commit();
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    tranzaction.Rollback();
+                    Response.StatusCode = 527;
+                    return false;
+                }
+                catch
+                {
+                    tranzaction.Rollback();
+                    return false;
+                }
+            }
 
             await oldProj.AddImagesToDbSystem(_db, _appEnvironment, uploads);
-            await Project.DeleteImagesFromDb(_db, oldProj.Id, deleteImages);
-            await oldProj.AddCompetences(_db, competences);
-            await oldProj.DeleteCompetences(_db, competenceIds);
 
             return true;
 
@@ -334,9 +359,10 @@ namespace ProjectRecruting.Controllers
         /// <returns></returns>
         /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
         /// <response code="404">проект не найден</response>
-        /// 
+        /// <response code="527">параллельный запрос уже изменил данные</response>
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(527)]
         [HttpPost("ChangeStatusStudent")]
         public async Task<bool> ChangeStatusStudent([FromForm]int projectId, [FromForm]string studentId, [FromForm]StatusInProject newStatus)
         {
@@ -358,8 +384,14 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return false;
             }
+            bool? res = await proj.ChangeStatusUserByLead(_db, newStatus, studentId);
+            if (res == null)
+            {
+                Response.StatusCode = 527;
+                return false;// null;
+            }
 
-            return await proj.ChangeStatusUserByLead(_db, newStatus, studentId);
+            return (bool)res;
         }
 
 
@@ -378,7 +410,7 @@ namespace ProjectRecruting.Controllers
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
         [HttpGet("GetStudents")]
-        public async Task GetStudents([FromForm]int projectId, [FromForm] StatusInProject status)
+        public async Task GetStudents(int projectId, StatusInProject status)
         {
 
             if (status != StatusInProject.Approved && status != StatusInProject.Canceled && status != StatusInProject.InProccessing)

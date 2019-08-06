@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
+//using static System.Net.Mime.MediaTypeNames;
 
 namespace ProjectRecruting.Models.Domain
 {
@@ -14,19 +14,59 @@ namespace ProjectRecruting.Models.Domain
     {
         public string Name { get; set; }
         public string SurName { get; set; }
+        public string Description { get; set; }
 
-
-        public int RefreshTokenHash { get; set; }
+        public int? RefreshTokenHash { get; set; }
 
         public List<CompanyUser> CompanyUsers { get; set; }
 
         public List<ProjectUser> ProjectUsers { get; set; }
 
+        public List<CompetenceUser> CompetenceUsers { get; set; }
+
         public ApplicationUser()
         {
+            RefreshTokenHash = null;
 
+            CompanyUsers = new List<CompanyUser>();
+            ProjectUsers = new List<ProjectUser>();
+            CompetenceUsers = new List<CompetenceUser>();
         }
 
+
+        public async static Task<ApplicationUser> ChangeData(ApplicationDbContext db,UserManager<ApplicationUser> userManager, ApplicationUser newData)
+        {
+            var user=await ApplicationUser.Get(userManager,newData.Id);
+            user.Name = newData.Name;
+            user.SurName = newData.SurName;
+            user.Description = newData.Description;
+            await db.SaveChangesAsync();
+            return user;
+        }
+
+        //добавление без валидации
+        public async Task<List<Competence>> AddCompetences(ApplicationDbContext db, string[] competences)
+        {
+            var needAdded = await Competence.CreateInDbIfNeed(db, competences);
+
+            List<CompetenceUser> forAddedRelation = new List<CompetenceUser>();
+            needAdded.ForEach(x =>
+            {
+                forAddedRelation.Add(new CompetenceUser(x.Id, this.Id));
+            });
+            db.CompetenceUsers.AddRange(forAddedRelation);
+
+            await db.SaveChangesAsync();
+            return needAdded;
+        }
+
+        //удаление компетенций без валидации
+        public async Task DeleteCompetences(ApplicationDbContext db, int[] competenceIds)
+        {
+            db.CompetenceUsers.RemoveRange(db.CompetenceUsers.Where(x1 => competenceIds.Contains(x1.Id) && x1.UserId == this.Id));
+
+            await db.SaveChangesAsync();
+        }
 
         public async Task SetRefreshToken(ApplicationDbContext db, string token)
         {

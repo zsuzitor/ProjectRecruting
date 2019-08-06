@@ -39,5 +39,73 @@ namespace ProjectRecruting.Models.Domain
             }
             return res;
         }
+
+        //не добавляет в бд
+        public async static Task CheckAndCreate(IFormFile[] uploadedFile, string path)//int count
+        {
+            if (uploadedFile == null)
+                return;
+            for (var i = 0; i < 1 && i < uploadedFile.Length; ++i)//i<count //////#TODO тут оставил цикл на будущее , сохранится только 1 картинка
+            {
+                byte[] bytes = null;
+                using (var binaryReader = new BinaryReader(uploadedFile[i].OpenReadStream()))
+                {
+                    bytes = binaryReader.ReadBytes((int)uploadedFile[i].Length);
+                }
+                bool isImage = Image.IsImage(bytes);
+                if (!isImage)
+                    continue;
+                using (var fileStream = new FileStream(path, FileMode.Create))
+                {
+                    await fileStream.WriteAsync(bytes);
+                    // await uploadedFile[0].CopyToAsync(fileStream);
+                }
+            }
+
+        }
+
+        //public async static Task CheckAndCreateDb(IFormFile uploadedFile, string path)
+        //{
+        //    if (uploadedFile == null)
+        //        return;
+            
+        //        byte[] bytes = null;
+        //        using (var binaryReader = new BinaryReader(uploadedFile.OpenReadStream()))
+        //        {
+        //            bytes = binaryReader.ReadBytes((int)uploadedFile.Length);
+        //        }
+        //        bool isImage = Image.IsImage(bytes);
+        //        if (!isImage)
+        //            return;
+        //        using (var fileStream = new FileStream(path, FileMode.Create))
+        //        {
+        //            await fileStream.WriteAsync(bytes);
+        //            // await uploadedFile[0].CopyToAsync(fileStream);
+        //        }
+            
+
+        //}
+
+        public static bool IsImage(byte[] data)
+        {
+            var dataIsImage = false;
+            using (var imageReadStream = new MemoryStream(data))
+            {
+                try
+                {
+                    using (var possibleImage = System.Drawing.Image.FromStream(imageReadStream))
+                    {
+                    }
+                    dataIsImage = true;
+                }
+                // Here you'd figure specific exception to catch. Do not leave like that.
+                catch
+                {
+                    dataIsImage = false;
+                }
+            }
+
+            return dataIsImage;
+        }
     }
 }
