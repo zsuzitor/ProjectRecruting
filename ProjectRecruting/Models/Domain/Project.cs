@@ -60,7 +60,7 @@ namespace ProjectRecruting.Models.Domain
         }
 
 
-        //НЕ загрузит их в сущность, только добавит в бд
+        //НЕ загрузит их в сущность(проекта), только добавит в бд
         public async Task<List<Image>> AddImagesToDbSystem(ApplicationDbContext db, IHostingEnvironment appEnvironment, IFormFileCollection images)
         {
             List<Image> res = new List<Image>();
@@ -155,18 +155,18 @@ namespace ProjectRecruting.Models.Domain
             return await db.Projects.FirstOrDefaultAsync(x1 => x1.Id == id);
         }
 
-        //не создает запись если ее нет
-        public async Task<bool> ChangeStatusUser(ApplicationDbContext db, StatusInProject newStatus, string userId)
+        //не создает запись если ее нет,нет валидации
+        public async Task<bool?> ChangeStatusUser(ApplicationDbContext db, StatusInProject newStatus, string userId)
         {
             var record = await db.Entry(this).Collection(x1 => x1.ProjectUsers).Query().FirstOrDefaultAsync(x1 => x1.UserId == userId);
             if (record == null)
                 return false;
-            record.Status = newStatus;
-            await db.SaveChangesAsync();
+            if (!await record.ChangeStatus(db, newStatus))
+                return null;
             return true;
         }
 
-        //измнение руководителем, дополнительная валидация
+        //измнение руководителем, дополнительная валидация, валидация только на изменяЕМЫЙ статус
         public async Task<bool?> ChangeStatusUserByLead(ApplicationDbContext db, StatusInProject newStatus, string userId)
         {
             var record = await db.Entry(this).Collection(x1 => x1.ProjectUsers).Query().FirstOrDefaultAsync(x1 => x1.UserId == userId);
@@ -180,7 +180,7 @@ namespace ProjectRecruting.Models.Domain
         }
 
 
-        //создает если надо и изменяет запись .(если записи нет то создаст ее.) у записи будет переданный статус
+        //создает если надо и изменяет запись .(если записи нет то создаст ее.) у записи будет переданный статус, нет валидации
         //null-если ошибка 
         public async Task<bool?> CreateChangeStatusUser(ApplicationDbContext db, StatusInProject newStatus, string userId)
         {
@@ -290,8 +290,8 @@ namespace ProjectRecruting.Models.Domain
         }
 
 
-        //составляем запрос
-        public static IQueryable<Project> GetActualQueryEntityInTown(ApplicationDbContext db, int? townId)//#TODO можно вынести db.Projects в параметры а этот метод сделать оболочкой, если нужно будет
+        //составляем запрос, данные не учитывая статус проекта
+        public static IQueryable<Project> GetActualQueryEntity(ApplicationDbContext db, int? townId)//#TODO можно вынести db.Projects в параметры а этот метод сделать оболочкой, если нужно будет
         {
             return db.ProjectTowns.Where(x1 => townId == null ? true : (x1.TownId == townId)).
                 GroupJoin(db.ProjectUsers, x1 => x1.ProjectId, x2 => x2.ProjectId, (x, y) => new { proj = x, prUser = y }).
@@ -300,15 +300,21 @@ namespace ProjectRecruting.Models.Domain
                 OrderByDescending(x1 => x1.count).Select(x1 => x1.proj);
 
         }
-        //получаем полные данные
-        public async static Task<List<Project>> GetActualEntityInTown(ApplicationDbContext db, int? townId)
+        //аналогично методу GetActualQueryEntity, но без закрытых проектов
+        public static IQueryable<Project> GetActualQueryEntityWithStatus(ApplicationDbContext db, int? townId)
         {
-            return await Project.GetActualQueryEntityInTown(db, townId).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
+            return  Project.GetActualQueryEntity(db, townId).Where(x1=>x1.Status!=StatusProject.Closed&& x1.Status!=StatusProject.Complited);
         }
-        //получаем сокращенные данные
-        public async static Task<List<ProjectShort>> GetActualShortEntityInTown(ApplicationDbContext db, int? townId, string userId)
+
+        //получаем полные данные, не учитывая статус проекта
+        public async static Task<List<Project>> GetActualEntity(ApplicationDbContext db, int? townId)
         {
-            var projs = await Project.GetActualQueryEntityInTown(db, townId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            return await Project.GetActualQueryEntity(db, townId).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
+        }
+        //получаем сокращенные данные, не учитывая статус проекта
+        public async static Task<List<ProjectShort>> GetActualShortEntityWithStatus(ApplicationDbContext db, int? townId, string userId)
+        {
+            var projs = await Project.GetActualQueryEntityWithStatus(db, townId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
             await ProjectShort.SetMainImages(db, projs);
             if (string.IsNullOrWhiteSpace(userId))
                 return projs;
@@ -325,7 +331,7 @@ namespace ProjectRecruting.Models.Domain
 
         public async static Task<List<ProjectShort>> GetByStartName(ApplicationDbContext db, int? townId, string userId,string name)
         {
-            var projs = await Project.GetActualQueryEntityInTown(db, townId).Where(x1=>x1.Name.Contains(name)).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            var projs = await Project.GetActualQueryEntity(db, townId).Where(x1=>x1.Name.Contains(name)).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
             await ProjectShort.SetMainImages(db, projs);
             if (string.IsNullOrWhiteSpace(userId))
                 return projs;

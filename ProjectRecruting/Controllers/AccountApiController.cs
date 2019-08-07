@@ -49,8 +49,16 @@ namespace ProjectRecruting.Controllers
         [HttpPost("Login")]
         public async Task Login([FromForm]string username, [FromForm]string password)
         {
+            //try
+            //{
 
+            
             var user = await ApplicationUser.LoginGet(_userManager, username, password);
+            //}
+            //catch(Exception e)
+            //{
+            //    var asd = 1;
+            //}
             if (user == null)
             {
                 Response.StatusCode = 400;
@@ -126,15 +134,16 @@ namespace ProjectRecruting.Controllers
             await user.SetRefreshToken(_db, encodedRefJwt);
 
 
-            var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            var callbackUrl = Url.Action(
-                "ConfirmEmail",
-                "Account",
-                new { userId = user.Id, code = code },
-                protocol: HttpContext.Request.Scheme);
-            EmailService emailService = new EmailService();
-            await emailService.SendEmailAsync(model.Email, "Confirm your account",
-                $"Подтвердите регистрацию, перейдя по ссылке: <a href='{callbackUrl}'>link</a>");
+            //--------этот блок для подтверждения почты
+            //var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            //var callbackUrl = Url.Action(
+            //    "ConfirmEmail",
+            //    "Account",
+            //    new { userId = user.Id, code = code },
+            //    protocol: HttpContext.Request.Scheme);
+            //EmailService emailService = new EmailService();
+            //await emailService.SendEmailAsync(model.Email, "Confirm your account",
+            //    $"Подтвердите регистрацию, перейдя по ссылке: <a href='{callbackUrl}'>link</a>");
 
             var response = new
             {

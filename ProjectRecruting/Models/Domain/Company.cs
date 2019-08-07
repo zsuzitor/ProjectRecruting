@@ -87,10 +87,26 @@ namespace ProjectRecruting.Models.Domain
             //}
         }
 
+        //составляем запрос
+        public static IQueryable<Company> GetActualQueryEntity(ApplicationDbContext db, int? townId)
+        {
+            return db.ProjectUsers.GroupBy(x1 => x1.ProjectId).Select(x1 => new { x1.Key, Count = x1.Count() }).
+                Join(db.ProjectTowns.Where(x1 => townId == null ? true : x1.TownId == townId), x1 => x1.Key, x2 => x2.ProjectId, (x1, x2) => x1).
+                Join(db.Projects, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { companyId = x2.CompanyId, count = x1.Count }).
+                OrderBy(x1 => x1.count).Join(db.Companys, x1 => x1.companyId, x2 => x2.Id, (x1, x2) => x2);
 
+        }
+
+        //получаем полные данные
+        public async static Task<List<CompanyShort>> GetActualEntity(ApplicationDbContext db, int? townId)
+        {
+            return await Company.GetActualQueryEntity(db, townId).Select(x1=>new CompanyShort(x1)).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
+        }
+
+        //все проекты не зависимо от статуса
         public async static Task<List<ProjectShort>> GetProjectsByActual(ApplicationDbContext db, int companyId, int? townId)
         {
-            var res= await Project.GetActualQueryEntityInTown(db, townId).Where(x1 => x1.CompanyId == companyId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            var res= await Project.GetActualQueryEntity(db, townId).Where(x1 => x1.CompanyId == companyId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
             await ProjectShort.SetMainImages(db,res);
             return res;
         }

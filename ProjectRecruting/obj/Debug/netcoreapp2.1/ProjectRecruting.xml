@@ -59,6 +59,14 @@
             <param name="code"></param>
             <returns></returns>
         </member>
+        <member name="M:ProjectRecruting.Controllers.AccountApiController.LogOut(System.String,System.String)">
+            <summary>
+            удаляет refresh token из бд
+            </summary>
+            <param name="userId">id пользователя</param>
+            <param name="refreshToken">refresh token</param>
+            <returns></returns>
+        </member>
         <member name="M:ProjectRecruting.Controllers.CompanyApiController.CreateCompany(ProjectRecruting.Models.Domain.Company,Microsoft.AspNetCore.Http.IFormFile[])">
             <summary>
             создание компании
@@ -82,6 +90,7 @@
             <response code="400">плохие данные</response>
             <response code="401">ошибка дешифрации токена, просрочен, изменен, не передан</response>
             <response code="404">компания для изменения не найдена</response>
+            <response code="527">параллельный запрос уже изменил данные</response>
         </member>
         <member name="M:ProjectRecruting.Controllers.CompanyApiController.AddUserToCompany(System.Int32,System.String)">
             <summary>
@@ -129,6 +138,7 @@
             <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
             <response code="404">проект не найден</response>
             <response code="400">переданы не валидные данные</response>
+            <response code="527">параллельный запрос уже изменил данные</response>
         </member>
         <member name="M:ProjectRecruting.Controllers.CompanyApiController.ChangeStatusProject(System.Int32,ProjectRecruting.Models.StatusProject)">
             <summary>
@@ -150,7 +160,7 @@
             <returns></returns>
             <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
             <response code="404">проект не найден</response>
-            
+            <response code="527">параллельный запрос уже изменил данные</response>
         </member>
         <member name="M:ProjectRecruting.Controllers.CompanyApiController.GetStudents(System.Int32,ProjectRecruting.Models.StatusInProject)">
             <summary>
@@ -163,6 +173,16 @@
             <response code="404">проект не найден</response>
             <response code="400">переданы не валидные данные(статус))</response>
         </member>
+        <member name="M:ProjectRecruting.Controllers.UserApiController.ChangeUserData(ProjectRecruting.Models.Domain.ApplicationUser,System.String[],System.Int32[])">
+            <summary>
+            изменение данных учетной записи пользователя
+            </summary>
+            <param name="newUser">новые данные пользователя</param>
+            <param name="competences">названия компетенций для добавления</param>
+            <param name="competenceIds">id компетенций для удаления</param>
+            <returns></returns>
+             <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+        </member>
         <member name="M:ProjectRecruting.Controllers.UserApiController.ChangeStatusStudentInProject(System.Int32,ProjectRecruting.Models.StatusInProject)">
             <summary>
             изменение(добавление, если ее нет) статуса студента в проекте(для студента)
@@ -170,10 +190,11 @@
             <param name="projectId">id проекта</param>
             <param name="newStatus">статус проекта, enum-StatusInProject</param>
             <returns>true-существующая запись обновлена, false-добавлена новая, null-сейчас не обрабатывается-произошла ошибка</returns>
-             /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+             <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
             <response code="404">проект не найден</response>
             <response code="400">переданы не валидные данные(статус))</response>
             <response code="406">почта не подтверждена</response>
+             <response code="527">параллельный запрос уже изменил данные</response>
         </member>
         <member name="M:ProjectRecruting.Controllers.UserApiController.GetActualProject(System.String)">
             <summary>

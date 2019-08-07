@@ -1,0 +1,44 @@
+﻿@{
+    Layout = null;
+}
+@{
+    ViewData["Title"] = "Login";
+}
+
+<h2>Login</h2>
+
+<div class="row">
+    <div class="col-md-4">
+        <section>
+            <form>
+                <h4>Use a local account to log in.</h4>
+                <hr />
+
+                <div class="form-group">
+                    <label>Email</label>
+                    <input name="Email" id="Email" class="form-control" />
+
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input id="Password" name="Password" class="form-control" />
+
+                </div>
+
+                <div class="form-group">
+                    <button type="button" onclick="tryLogin()" class="btn btn-default">Log in</button>
+                </div>
+                <div class="form-group">
+                    <p>
+                        <a>Forgot your password?</a>
+                    </p>
+                    <p>
+                        <button type="button" onclick="showRegisterPage()" class="btn btn-default">register</button>
+                    </p>
+                </div>
+            </form>
+        </section>
+    </div>
+
+</div>
+

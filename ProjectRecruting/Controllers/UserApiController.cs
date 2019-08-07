@@ -88,13 +88,15 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 401;
                 return null;
             }
-            var user = await ApplicationUser.Get(_userManager, userId);
-            bool mailConfirmed = await _userManager.IsEmailConfirmedAsync(user);
-            if (!mailConfirmed)
-            {
-                Response.StatusCode = 406;
-                return null;
-            }
+
+            //---------------этот кусок нужен
+            //var user = await ApplicationUser.Get(_userManager, userId);
+            //bool mailConfirmed = await _userManager.IsEmailConfirmedAsync(user);
+            //if (!mailConfirmed)
+            //{
+            //    Response.StatusCode = 406;
+            //    return null;
+            //}
 
 
             var project = await Project.Get(_db, projectId);
@@ -140,7 +142,7 @@ namespace ProjectRecruting.Controllers
                     return;// new List<ProjectShort>();
                 townId = townDb.Id;
             }
-            var res = await Project.GetActualShortEntityInTown(_db, townId, userId);
+            var res = await Project.GetActualShortEntityWithStatus(_db, townId, userId);
             await ProjectShort.SetMainImages(_db, res);
             //return res;
             Response.ContentType = "application/json";
@@ -195,6 +197,23 @@ namespace ProjectRecruting.Controllers
         public async Task GetProjectsCompany(int companyId, int? townId)
         {
             var res = await Company.GetProjectsByActual(_db, companyId, townId);
+            Response.ContentType = "application/json";
+            await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
+
+        }
+
+
+        /// <summary>
+        /// получить список компаний
+        /// </summary>
+        /// <param name="townId">id города</param>
+        /// <returns></returns>
+        /// 
+        [HttpGet("GetActualCompanys")]
+        public async Task GetActualCompanys( int? townId)
+        {
+            var res=await Company.GetActualEntity(_db,townId);
+
             Response.ContentType = "application/json";
             await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
 

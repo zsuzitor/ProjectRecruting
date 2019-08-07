@@ -13,27 +13,45 @@ namespace ProjectRecruting.Controllers
         public IActionResult Index()
         {
 
-            return View();
+            return PartialView();
         }
 
-        public IActionResult About()
+        public IActionResult CompanysPage()
         {
-            ViewData["Message"] = "Your application description page.";
 
-            return View();
+            return PartialView();
         }
 
-        public IActionResult Contact()
+        public IActionResult ProjectsPage()
         {
-            ViewData["Message"] = "Your contact page.";
 
-            return View();
+            return PartialView();
         }
 
-        public IActionResult Privacy()
+        public IActionResult CreateCompany()
         {
-            return View();
+
+            return PartialView();
         }
+
+        //public IActionResult About()
+        //{
+        //    ViewData["Message"] = "Your application description page.";
+
+        //    return View();
+        //}
+
+        //public IActionResult Contact()
+        //{
+        //    ViewData["Message"] = "Your contact page.";
+
+        //    return View();
+        //}
+
+        //public IActionResult Privacy()
+        //{
+        //    return View();
+        //}
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
