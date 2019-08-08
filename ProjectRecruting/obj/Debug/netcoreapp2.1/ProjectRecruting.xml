@@ -218,6 +218,14 @@
             <param name="townId">id города</param>
             <returns></returns>
         </member>
+        <member name="M:ProjectRecruting.Controllers.UserApiController.GetActualCompanys(System.Nullable{System.Int32})">
+            <summary>
+            получить список компаний
+            </summary>
+            <param name="townId">id города</param>
+            <returns></returns>
+            
+        </member>
         <member name="M:ProjectRecruting.Controllers.UserApiController.GetUserCompanys">
             <summary>
             получить компании пользователя
