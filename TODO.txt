@@ -14,8 +14,11 @@ recruting->recruiting
 подтверждение почтызакомменчено:
 accountapi- Register-- 
 userapi--ChangeStatusStudentInProject
-
+убрать отслеживание изменений бд, там где можно
 --end--global---
+
+
+userapi->GetProject,GetCompany -- дописать + swagger
 
 
 запретить подавать заявку в свой проект, или как то продумать изменение статуса такого пользователя(могут быть проблемы из за того что 2 методы под каждую роль)

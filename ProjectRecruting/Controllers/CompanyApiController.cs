@@ -15,7 +15,7 @@ using ProjectRecruting.Models.services;
 namespace ProjectRecruting.Controllers
 {
     [Produces("application/json")]
-    [Route("api/Company")]
+    [Route("api/company")]
     [ApiController]
     public class CompanyApiController : ControllerBase
     {
@@ -39,7 +39,7 @@ namespace ProjectRecruting.Controllers
         /// <response code="400">переданы не валидные данные</response>
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
-        [HttpPost("CreateCompany")]
+        [HttpPost("create-company")]
         public async Task CreateCompany([FromForm]Company company, [FromForm]IFormFile[] uploadedFile = null)
         {
             //var file = HttpContext.Request.Form.Files;
@@ -89,7 +89,7 @@ namespace ProjectRecruting.Controllers
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
         [ProducesResponseType(527)]
-        [HttpPost("ChangeCompany")]
+        [HttpPost("change-company")]
         public async Task<bool?> ChangeCompany([FromForm]Company company, [FromForm] IFormFile[] uploadedFile = null)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
@@ -144,7 +144,7 @@ namespace ProjectRecruting.Controllers
         /// <response code="404">компания не найдена</response>
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
-        [HttpPost("AddUserToCompany")]
+        [HttpPost("add-user-to-company")]
         public async Task<bool?> AddUserToCompany([FromForm]int companyId, [FromForm] string newUserId)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
@@ -174,7 +174,7 @@ namespace ProjectRecruting.Controllers
         /// <response code="404">компания не найдена</response>
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
-        [HttpPost("DeleteUserFromCompany")]
+        [HttpPost("delete-user-from-company")]
         public async Task<bool?> DeleteUserFromCompany([FromForm]int companyId, [FromForm] string newUserId)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
@@ -208,7 +208,7 @@ namespace ProjectRecruting.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
-        [HttpPost("CreateProject")]
+        [HttpPost("create-project")]
         public async Task<int?> CreateProject([FromForm]Project project, [FromForm]string[] competences, [FromForm]string[] townNames, [FromForm]IFormFileCollection uploads = null)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
@@ -263,7 +263,7 @@ namespace ProjectRecruting.Controllers
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
         [ProducesResponseType(527)]
-        [HttpPost("ChangeProject")]
+        [HttpPost("change-project")]
         public async Task<bool> ChangeProject([FromForm]Project project, [FromForm]IFormFileCollection uploads,
             [FromForm] int[] deleteImages, [FromForm]string[] competences, [FromForm]int[] competenceIds)
         {
@@ -330,7 +330,7 @@ namespace ProjectRecruting.Controllers
         /// <response code="404">проект не найден</response>
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
-        [HttpPost("ChangeStatusProject")]
+        [HttpPost("change-status-project")]
         public async Task<bool> ChangeStatusProject([FromForm]int projectId, [FromForm]StatusProject newStatus)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
@@ -363,7 +363,7 @@ namespace ProjectRecruting.Controllers
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
         [ProducesResponseType(527)]
-        [HttpPost("ChangeStatusStudent")]
+        [HttpPost("change-status-student")]
         public async Task<bool> ChangeStatusStudent([FromForm]int projectId, [FromForm]string studentId, [FromForm]StatusInProject newStatus)
         {
             if (newStatus != StatusInProject.InProccessing && newStatus != StatusInProject.Canceled && newStatus != StatusInProject.Approved)
@@ -409,7 +409,7 @@ namespace ProjectRecruting.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
-        [HttpGet("GetStudents")]
+        [HttpGet("get-students")]
         public async Task GetStudents(int projectId, StatusInProject status)
         {
 

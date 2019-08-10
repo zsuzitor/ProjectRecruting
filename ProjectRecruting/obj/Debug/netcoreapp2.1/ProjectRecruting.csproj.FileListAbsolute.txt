@@ -42,3 +42,6 @@ E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\ProjectRecru
 E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\UserSecretsAssemblyInfo.cs
 E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\Razor\Views\Account\Login.g.cshtml.cs
 E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\Razor\Views\Account\Register.g.cshtml.cs
+E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\Razor\Views\Home\CompanysPage.g.cshtml.cs
+E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\Razor\Views\Home\MainPage.g.cshtml.cs
+E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\Razor\Views\Home\CreateCompany.g.cshtml.cs

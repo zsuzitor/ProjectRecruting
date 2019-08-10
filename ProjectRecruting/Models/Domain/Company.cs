@@ -58,6 +58,10 @@ namespace ProjectRecruting.Models.Domain
 
         }
 
+        public async static Task<Company> Get(ApplicationDbContext db, int id)
+        {
+            return await db.Companys.FirstOrDefaultAsync(x1 => x1.Id == id);
+        }
         public async static Task<Company> GetIfAccess(ApplicationDbContext db, string userId, int companyId)
         {
             //var companyUser = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.CompanyId == companyId && x1.UserId == userId);
@@ -90,11 +94,28 @@ namespace ProjectRecruting.Models.Domain
         //составляем запрос
         public static IQueryable<Company> GetActualQueryEntity(ApplicationDbContext db, int? townId)
         {
-            return db.ProjectUsers.GroupBy(x1 => x1.ProjectId).Select(x1 => new { x1.Key, Count = x1.Count() }).
-                Join(db.ProjectTowns.Where(x1 => townId == null ? true : x1.TownId == townId), x1 => x1.Key, x2 => x2.ProjectId, (x1, x2) => x1).
-                Join(db.Projects, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { companyId = x2.CompanyId, count = x1.Count }).
-                OrderBy(x1 => x1.count).Join(db.Companys, x1 => x1.companyId, x2 => x2.Id, (x1, x2) => x2);
+            //return db.ProjectUsers.GroupBy(x1 => x1.ProjectId).Select(x1 => new { x1.Key, Count = x1.Count() }).
+            //    Join(db.ProjectTowns.Where(x1 => townId == null ? true : x1.TownId == townId), x1 => x1.Key, x2 => x2.ProjectId, (x1, x2) => x1).
+            //    Join(db.Projects, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { companyId = x2.CompanyId, count = x1.Count }).
+            //    OrderBy(x1 => x1.count).Join(db.Companys, x1 => x1.companyId, x2 => x2.Id, (x1, x2) => x2);
 
+            //var g = _db.ProjectTowns.Where(x1 => townId == null ? true : (x1.TownId == townId)).
+            //    GroupJoin(_db.ProjectUsers, x1 => x1.ProjectId, x2 => x2.ProjectId, (x, y) => new { proj = x, prUser = y }).
+            //    SelectMany(x => x.prUser.DefaultIfEmpty(), (x, y) => new { x.proj.ProjectId, y.Id }).GroupBy(x1 => x1.ProjectId).
+            //    Join(_db.Projects, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { companyId = x2.CompanyId, count = x1.Count() }).GroupBy(x1 => x1.companyId).
+            //    Select(x1 => new { x1.Key, count = x1.Sum(x2 => x2.count) }).Join(_db.Companys, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { x1.count, company = x2 }).
+            //    OrderBy(x1=>x1.count).Select(x1=>x1.company).ToList();
+
+
+            var t11 = db.ProjectTowns.Where(x1 => townId == null ? true : (x1.TownId == townId)).
+              GroupJoin(db.ProjectUsers, x1 => x1.ProjectId, x2 => x2.ProjectId, (x, y) => new { proj = x, prUser = y }).
+              SelectMany(x => x.prUser.DefaultIfEmpty(), (x, y) => new { x.proj.ProjectId, y.Id }).GroupBy(x1 => x1.ProjectId).
+              Join(db.Projects, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { companyId = x2.CompanyId, count = x1.Count() }).
+              GroupBy(x1 => x1.companyId).Select(x1 => new { x1.Key, count = x1.Sum(x2 => x2.count) });//.ToList();
+            return db.Companys.
+                           GroupJoin(t11, x1 => x1.Id, x2 => x2.Key, (x, y) => new { company = x, lists = y }).
+                           SelectMany(x => x.lists.DefaultIfEmpty(), (x, y) => new { x.company, count = (y == null ? 0 : y.count) }).
+                           OrderByDescending(x1=>x1.count).Select(x1=>x1.company);
         }
 
         //получаем полные данные

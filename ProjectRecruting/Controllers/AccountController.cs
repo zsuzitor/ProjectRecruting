@@ -6,13 +6,16 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ProjectRecruting.Controllers
 {
+    [Route("account")]
     public class AccountController : Controller
     {
+        [HttpGet("login")]
         public IActionResult Login()
         {
             return PartialView();
         }
 
+        [HttpGet("register")]
         public IActionResult Register()
         {
             return PartialView();

@@ -14,7 +14,7 @@ using ProjectRecruting.Models.services;
 namespace ProjectRecruting.Controllers
 {
     [Produces("application/json")]
-    [Route("api/Account")]
+    [Route("api/account")]
     [ApiController]
     public class AccountApiController : ControllerBase
     {
@@ -46,7 +46,7 @@ namespace ProjectRecruting.Controllers
         [ProducesResponseType(200)]
         [ProducesResponseType(400)]
         [AllowAnonymous]
-        [HttpPost("Login")]
+        [HttpPost("login")]
         public async Task Login([FromForm]string username, [FromForm]string password)
         {
             //try
@@ -103,7 +103,7 @@ namespace ProjectRecruting.Controllers
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
         [AllowAnonymous]
-        [HttpPost("Register")]
+        [HttpPost("register")]
         public async Task Register([FromForm]RegisterModel model)//, string confirmPassword
         {
             if (!ModelState.IsValid)
@@ -171,10 +171,10 @@ namespace ProjectRecruting.Controllers
         ///}
         /// </returns>
         /// <response code="401">ошибка дешифрации токена, просрочен, изменен, не передан</response>
-        /// <response code="404">ошибка обновления токена</response>
+        /// <response code="404">--ошибка обновления токена</response>
         [ProducesResponseType(401)]
-        [ProducesResponseType(404)]
-        [HttpPost("RefreshToken")]
+        //[ProducesResponseType(404)]
+        [HttpPost("refresh-token")]
         public async Task RefreshToken([FromForm]string refreshToken)//, string confirmPassword
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
@@ -187,7 +187,7 @@ namespace ProjectRecruting.Controllers
             var tokens = await AuthJWT.Refresh(_db, userId, refreshToken);
             if (tokens == null)
             {
-                Response.StatusCode = 404;
+                Response.StatusCode = 401;
                 return;
             }
             var response = new
@@ -214,7 +214,7 @@ namespace ProjectRecruting.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        [HttpGet("ConfirmEmail")]
+        [HttpGet("confirm-email")]
         //[AllowAnonymous]
         public async Task ConfirmEmail(string userId, string code)
         {
@@ -243,7 +243,7 @@ namespace ProjectRecruting.Controllers
         /// <param name="userId">id пользователя</param>
         /// <param name="refreshToken">refresh token</param>
         /// <returns></returns>
-        [HttpPost("LogOut")]
+        [HttpPost("logout")]
         public async Task<bool> LogOut([FromForm]string userId, [FromForm] string refreshToken)
         {
             return await AuthJWT.DeleteRefreshTokenFromDb(_db, userId, refreshToken);

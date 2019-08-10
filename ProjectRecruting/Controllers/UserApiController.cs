@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models;
 using ProjectRecruting.Models.Domain;
+using ProjectRecruting.Models.ResultModel;
 using ProjectRecruting.Models.services;
 
 namespace ProjectRecruting.Controllers
@@ -38,7 +39,7 @@ namespace ProjectRecruting.Controllers
         /// <param name="competenceIds">id компетенций для удаления</param>
         /// <returns></returns>
         ///  <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
-        [HttpPost("ChangeUserData")]
+        [HttpPost("change-user-data")]
         public async Task<bool?> ChangeUserData([FromForm]ApplicationUser newUser, [FromForm]string[] competences, [FromForm]int[] competenceIds)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
@@ -74,7 +75,7 @@ namespace ProjectRecruting.Controllers
         [ProducesResponseType(404)]
         [ProducesResponseType(406)]
         [ProducesResponseType(527)]
-        [HttpPost("ChangeStatusStudentInProject")]
+        [HttpPost("change-status-student-in-project")]
         public async Task<bool?> ChangeStatusStudentInProject([FromForm]int projectId, [FromForm]Models.StatusInProject newStatus)
         {
             if (newStatus != StatusInProject.InProccessing && newStatus != StatusInProject.CanceledByStudent)
@@ -122,7 +123,7 @@ namespace ProjectRecruting.Controllers
         /// </summary>
         /// <param name="town">название города</param>
         /// <returns></returns>
-        [HttpGet("GetActualProject")]
+        [HttpGet("get-actual-project")]
         public async Task GetActualProject(string town)//<List<ProjectShort>>
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
@@ -163,7 +164,7 @@ namespace ProjectRecruting.Controllers
         /// </summary>
         /// <param name="town">название города</param>
         /// <returns></returns>
-        [HttpGet("GetActualCompetences")]
+        [HttpGet("get-actual-competences")]
         public async Task GetActualCompetences(string town)
         {
             //List<CompetenceShort> res = new List<CompetenceShort>();
@@ -193,7 +194,7 @@ namespace ProjectRecruting.Controllers
         /// <param name="companyId">id компании</param>
         /// <param name="townId">id города</param>
         /// <returns></returns>
-        [HttpGet("GetProjectsCompany")]
+        [HttpGet("get-projects-company")]
         public async Task GetProjectsCompany(int companyId, int? townId)
         {
             var res = await Company.GetProjectsByActual(_db, companyId, townId);
@@ -209,10 +210,11 @@ namespace ProjectRecruting.Controllers
         /// <param name="townId">id города</param>
         /// <returns></returns>
         /// 
-        [HttpGet("GetActualCompanys")]
-        public async Task GetActualCompanys( int? townId)
+        [HttpGet("get-actual-companys")]
+        public async Task GetActualCompanys(int? townId)
         {
-            var res=await Company.GetActualEntity(_db,townId);
+            var res = await Company.GetActualEntity(_db, townId);
+
 
             Response.ContentType = "application/json";
             await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
@@ -226,7 +228,7 @@ namespace ProjectRecruting.Controllers
         /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
 
         [ProducesResponseType(401)]
-        [HttpGet("GetUserCompanys")]
+        [HttpGet("get-user-companys")]
         public async Task GetUserCompanys()
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
@@ -249,7 +251,7 @@ namespace ProjectRecruting.Controllers
         /// <returns></returns>
         ///  <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
         [ProducesResponseType(401)]
-        [HttpGet("GetUserResponsibilityProjects")]
+        [HttpGet("get-user-responsibility-projects")]
         public async Task GetUserResponsibilityProjects()
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
@@ -271,7 +273,7 @@ namespace ProjectRecruting.Controllers
         /// <returns></returns>
         ///  <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
         [ProducesResponseType(401)]
-        [HttpGet("GetUserRequests")]
+        [HttpGet("get-user-requests")]
         public async Task GetUserRequests(StatusInProject statusInProject)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
@@ -298,7 +300,7 @@ namespace ProjectRecruting.Controllers
         /// <param name="projectName">строка вхождение которой ищем</param>
         /// <param name="townId">id города</param>
         /// <returns></returns>
-        [HttpGet("GetProjectByContainsName")]
+        [HttpGet("get-project-by-contains-name")]
         public async Task GetProjectByContainsName(string projectName, int? townId)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
@@ -307,6 +309,26 @@ namespace ProjectRecruting.Controllers
             await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
         }
 
+
+        [HttpGet("get-project")]
+        public async Task GetProject(int id)
+        {
+            var proj = await Project.Get(_db, id);
+            var res = await ProjectPage.LoadAllForView(_db, proj);
+
+
+            Response.ContentType = "application/json";
+            await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
+        }
+
+        [HttpGet("get-company")]
+        public async Task GetCompany(int id)
+        {
+            var proj = await Company.Get(_db, id);
+           
+            Response.ContentType = "application/json";
+            await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
+        }
 
 
     }

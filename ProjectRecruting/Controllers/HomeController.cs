@@ -8,26 +8,41 @@ using ProjectRecruting.Models;
 
 namespace ProjectRecruting.Controllers
 {
+    [Route("home")]
+    [Route("")]
     public class HomeController : Controller
     {
+        [HttpGet("index")]
+        [HttpGet("")]
         public IActionResult Index()
+        {
+
+            return View();
+        }
+
+        //страница с выбором раздела
+        [HttpGet("main-page")]
+        public IActionResult MainPage()
         {
 
             return PartialView();
         }
 
+        [HttpGet("companys-page")]
         public IActionResult CompanysPage()
         {
 
             return PartialView();
         }
 
+        [HttpGet("projects-page")]
         public IActionResult ProjectsPage()
         {
 
             return PartialView();
         }
 
+        [HttpGet("create-company")]
         public IActionResult CreateCompany()
         {
 
@@ -53,6 +68,7 @@ namespace ProjectRecruting.Controllers
         //    return View();
         //}
 
+        [HttpGet("error")]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

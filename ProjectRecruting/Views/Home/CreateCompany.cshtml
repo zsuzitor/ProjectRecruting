@@ -1,0 +1,16 @@
+﻿@{ 
+    Layout = null;
+}
+
+    <form>
+        <input id="newCompanyName" name="Name" type="text" />
+        <input id="newCompanyDescription" name="Description" type="text" />
+        <input id="newCompanyNumber" name="Number" type="text" />
+        <input id="newCompanyEmail" name="Email" type="text" />
+        <input id="newCompanyImage" name="uploadedFile" type="file" />
+
+        <button onclick="saveNewCompany()" type="button">Создать</button>
+    </form>
+<div id="createdCompany">
+    ссылка на созданную компанию
+</div>

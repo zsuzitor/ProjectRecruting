@@ -7,7 +7,7 @@ function refreshToken(func) {
     //TODO установить главный токен
     
     goAjaxRequest({
-        type: 'POST', data: { refreshToken: refreshToken }, url: '/api/Account/RefreshToken',
+        type: 'POST', data: { refreshToken: refreshToken }, url: '/api/account/refresh-token',
         funcSuccess: function (xhr, status, jqXHR) {
             //localStorage.setItem('userId', xhr.access_token)
             localStorage.setItem('mainToken', xhr.access_token)
