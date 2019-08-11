@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models;
 using ProjectRecruting.Models.Domain;
+using ProjectRecruting.Models.ShortModel;
 using ProjectRecruting.Models.ResultModel;
 using ProjectRecruting.Models.services;
 
@@ -127,11 +128,10 @@ namespace ProjectRecruting.Controllers
         public async Task GetActualProject(string town)//<List<ProjectShort>>
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
-            //if (status != 0 || userId == null)
-            //{
-            //    Response.StatusCode = 401;
-            //    return null;
-            //}
+            if (status != 0 || userId == null)
+            {
+                userId = null;
+            }
             //List<ProjectShort> res = new List<ProjectShort>();
 
             int? townId = null;
@@ -310,26 +310,57 @@ namespace ProjectRecruting.Controllers
         }
 
 
+
+        /// <summary>
+        /// получение проекта
+        /// </summary>
+        /// <param name="id">id проекта</param>
+        /// <returns></returns>
+        /// <response code="404"> проект не найден</response>
+        [ProducesResponseType(404)]
         [HttpGet("get-project")]
-        public async Task GetProject(int id)
+        public async Task GetProject(int? id)
         {
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
+            if (status != 0 || userId == null)
+            {
+                userId = null;
+            }
             var proj = await Project.Get(_db, id);
-            var res = await ProjectPage.LoadAllForView(_db, proj);
+            if (proj == null)
+            {
+                Response.StatusCode = 404;
+                return;// null;
+            }
+            var res = await ProjectPage.LoadAllForView(_db, proj, userId);
 
 
             Response.ContentType = "application/json";
             await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
         }
 
+
+        /// <summary>
+        /// получить компанию
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        /// <response code="404"> компания не найдена</response>
+        [ProducesResponseType(404)]
         [HttpGet("get-company")]
         public async Task GetCompany(int id)
         {
-            var proj = await Company.Get(_db, id);
-           
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
+            if (status != 0 || userId == null)
+            {
+                userId = null;
+            }
+            var company = await Company.Get(_db, id);//(int)
+            CompanyPage res = await CompanyPage.LoadAllForView(_db, company, userId);
+
             Response.ContentType = "application/json";
             await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
         }
-
 
     }
 }

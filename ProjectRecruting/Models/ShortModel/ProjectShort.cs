@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace ProjectRecruting.Models
+namespace ProjectRecruting.Models.ShortModel
 {
     public class ProjectShort
     {
@@ -18,7 +18,7 @@ namespace ProjectRecruting.Models
 
         public ProjectShort()
         {
-            Status = StatusInProject.Not;
+            Status = StatusInProject.Empty;
             MainImageId = null;
         }
 

@@ -14,6 +14,7 @@ namespace ProjectRecruting.Models.Domain
         //public Company Company { get; set; }
         //public byte[] Data { get; set; }
 
+        public string Path { get; set; }
         public int ProjectId { get; set; }
         public Project Project { get; set; }
 
@@ -41,26 +42,29 @@ namespace ProjectRecruting.Models.Domain
         }
 
         //не добавляет в бд
-        public async static Task CheckAndCreate(IFormFile[] uploadedFile, string path)//int count
+        public async static Task<bool> CheckAndCreate(IFormFile[] uploadedFile, string path)//int count
         {
             if (uploadedFile == null)
-                return;
-            for (var i = 0; i < 1 && i < uploadedFile.Length; ++i)//i<count //////#TODO тут оставил цикл на будущее , сохранится только 1 картинка
-            {
+                return false;
+            if(uploadedFile.Length<1)
+                return false;
+            //for (var i = 0; i < 1 && i < uploadedFile.Length; ++i)//i<count //////#TODO тут оставил цикл на будущее , сохранится только 1 картинка
+            //{
                 byte[] bytes = null;
-                using (var binaryReader = new BinaryReader(uploadedFile[i].OpenReadStream()))
+                using (var binaryReader = new BinaryReader(uploadedFile[0].OpenReadStream()))
                 {
-                    bytes = binaryReader.ReadBytes((int)uploadedFile[i].Length);
+                    bytes = binaryReader.ReadBytes((int)uploadedFile[0].Length);
                 }
                 bool isImage = Image.IsImage(bytes);
                 if (!isImage)
-                    continue;
+                return false; //continue;
                 using (var fileStream = new FileStream(path, FileMode.Create))
                 {
                     await fileStream.WriteAsync(bytes);
                     // await uploadedFile[0].CopyToAsync(fileStream);
-                }
+               // }
             }
+            return true;
 
         }
 

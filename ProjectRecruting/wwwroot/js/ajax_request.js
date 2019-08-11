@@ -88,7 +88,7 @@ function trySend(ajaxObj) {
     if (tokenRequested) {
         setTimeout(function () {
             trySend(ajaxObj);
-        }, 200);
+        }, 50);
     }
     else {
         $.ajax(ajaxObj);

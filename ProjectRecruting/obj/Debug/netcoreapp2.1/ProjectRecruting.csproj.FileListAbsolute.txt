@@ -45,3 +45,5 @@ E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\Razor\Views\
 E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\Razor\Views\Home\CompanysPage.g.cshtml.cs
 E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\Razor\Views\Home\MainPage.g.cshtml.cs
 E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\Razor\Views\Home\CreateCompany.g.cshtml.cs
+E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\Razor\Views\Home\ProjectsPage.g.cshtml.cs
+E:\csharp\ProjectRecruting\ProjectRecruting\obj\Debug\netcoreapp2.1\Razor\Views\Home\CreateProject.g.cshtml.cs

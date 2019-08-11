@@ -111,6 +111,11 @@
     <script src="~/js/refresh_token.js"></script>
 
     <script>
+        
+function setRepeatRefresh() {
+    //#TODO
+}
+
         $(window).on('load', function () {
             //alert(document.location.pathname);//search - параметры через ?, href-полный url
             var path = document.location.pathname;
@@ -129,7 +134,7 @@
                     }
                 });
             };
-
+            setRepeatRefresh();
             refreshToken(func);
 
             //  тут надо статусы обработать

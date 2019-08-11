@@ -39,6 +39,7 @@ namespace ProjectRecruting.Models.Domain
             {
                 townNames[i] = townNames[i].ToLower().Trim();
             }
+            townNames=townNames.Distinct().ToList();
             var townsExists= await db.Towns.Where(x1=> townNames.Contains(x1.Name)).ToListAsync();
             List<Town> notExist = new List<Town>();
             foreach (var i in townNames)

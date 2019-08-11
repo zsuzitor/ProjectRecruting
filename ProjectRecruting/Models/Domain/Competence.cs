@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models.Domain.ManyToMany;
+using ProjectRecruting.Models.ShortModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;

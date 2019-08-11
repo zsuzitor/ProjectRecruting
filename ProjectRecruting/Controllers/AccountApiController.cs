@@ -184,6 +184,7 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 401;
                 return;
             }
+            
             var tokens = await AuthJWT.Refresh(_db, userId, refreshToken);
             if (tokens == null)
             {

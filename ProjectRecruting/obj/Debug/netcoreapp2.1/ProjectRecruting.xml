@@ -112,25 +112,25 @@
              /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
             <response code="404">компания не найдена</response>
         </member>
-        <member name="M:ProjectRecruting.Controllers.CompanyApiController.CreateProject(ProjectRecruting.Models.Domain.Project,System.String[],System.String[],Microsoft.AspNetCore.Http.IFormFileCollection)">
+        <member name="M:ProjectRecruting.Controllers.CompanyApiController.CreateProject(ProjectRecruting.Models.Domain.Project,System.String[],System.String[],Microsoft.AspNetCore.Http.IFormFile[])">
             <summary>
             создание проекта
             </summary>
             <param name="project">данные проекта</param>
             <param name="competences">список компетенций</param>
             <param name="townNames">список названий городов</param>
-            <param name="uploads">изображения</param>
+            <param name="uploadedFile">изображения</param>
             <returns></returns>
             <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
             <response code="404">компания не найдена</response>
             <response code="400">переданы не валидные данные</response>
         </member>
-        <member name="M:ProjectRecruting.Controllers.CompanyApiController.ChangeProject(ProjectRecruting.Models.Domain.Project,Microsoft.AspNetCore.Http.IFormFileCollection,System.Int32[],System.String[],System.Int32[])">
+        <member name="M:ProjectRecruting.Controllers.CompanyApiController.ChangeProject(ProjectRecruting.Models.Domain.Project,System.Int32[],System.String[],System.Int32[],Microsoft.AspNetCore.Http.IFormFile[])">
             <summary>
             изменение проекта
             </summary>
             <param name="project">новые данные проекта</param>
-            <param name="uploads">изображения</param>
+            <param name="uploadedFile">изображения</param>
             <param name="deleteImages">ids изображений для удаления</param>
             <param name="competences">список названий компетенций</param>
             <param name="competenceIds">список id компетенций для удаления</param>
@@ -255,6 +255,22 @@
             <param name="projectName">строка вхождение которой ищем</param>
             <param name="townId">id города</param>
             <returns></returns>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.UserApiController.GetProject(System.Nullable{System.Int32})">
+            <summary>
+            получение проекта
+            </summary>
+            <param name="id">id проекта</param>
+            <returns></returns>
+            <response code="404"> проект не найден</response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.UserApiController.GetCompany(System.Int32)">
+            <summary>
+            получить компанию
+            </summary>
+            <param name="id"></param>
+            <returns></returns>
+            <response code="404"> компания не найдена</response>
         </member>
     </members>
 </doc>

@@ -15,17 +15,26 @@ function getHtmlCompanysList(json) {
     res += "<div>";
     if (data) {
         for (let i = 0; i < data.length; ++i) {
-            res += "<div style='border:1px solid black;'>";
-            res += "<p>" + data[i].Id + "</p>";
-            res += "<p>" + data[i].Name + "</p>";
-            res += "<p>" + data[i].Description + "</p>";
-            res += "<p>" + data[i].Number + "</p>";
-            res += "<p>" + data[i].Email + "</p>";
-            
-            res += "</div>";
+            res += getHtmlCompany(data[i]);
         }
     }
     res += "</div>";
+
+    return res;
+}
+
+function getHtmlCompany(json) {
+    let data = json;//= JSON.parse(json);
+    let res = "";
+    res += "<div style='border:1px solid black;'>";
+    res += "<p>" + "<button onclick='loadCompanyPage(\"" + data.Id +"\")'>" + data.Id +"</button>" + "</p>";
+    res += "<p>" + data.Name + "</p>";
+    res += "<p>" + data.Description + "</p>";
+    res += "<p>" + data.Number + "</p>";
+    res += "<p>" + data.Email + "</p>";
+
+    res += "</div>";
+
 
     return res;
 }
@@ -36,18 +45,27 @@ function getHtmlProjectsList(json) {
     res += "<div>";
     if (data) {
         for (let i = 0; i < data.length; ++i) {
-            res += "<div style='border:1px solid black;'>";
-            res += "<p>" + data[i].ProjectId + "</p>";
-            res += "<p>" + data[i].Name + "</p>";
-            res += "<p>" + data[i].Status + "</p>";
-           
-            res += "</div>";
+            res += getHtmlProject(data[i]);
         }
     }
     res += "</div>";
 
     return res;
 }
+
+function getHtmlProject(json) {
+    let data = json;//= JSON.parse(json);
+    let res = "";
+    res += "<div style='border:1px solid black;'>";
+    res += "<p>" + "<button onclick='loadProjectPage(\"" + data.Id + "\")'>" + data.Id + "</button>" + "</p>";
+    res += "<p>" + data.Name + "</p>";
+    res += "<p>" + data.Status + "</p>";
+
+    res += "</div>";
+
+    return res;
+}
+
 
 function getHtmlCompetenceList(json) {
     let data = json;//= JSON.parse(json);
@@ -55,11 +73,33 @@ function getHtmlCompetenceList(json) {
     res += "<div>";
     if (data) {
         for (let i = 0; i < data.length; ++i) {
-            res += "<div style='border:1px solid black;'>";
-            res += "<p>" + data[i].Id + "</p>";
-            res += "<p>" + data[i].Name + "</p>";
-            
-            res += "</div>";
+            getHtmlCompetence(data[i]);
+        }
+    }
+    res += "</div>";
+
+    return res;
+}
+function getHtmlCompetence(json) {
+    let data = json;//= JSON.parse(json);
+    let res = "";
+    res += "<div style='border:1px solid black;'>";
+    res += "<p>" + data.Id + "</p>";
+    res += "<p>" + data.Name + "</p>";
+
+    res += "</div>";
+
+    return res;
+}
+
+function getHtmlTowns(json) {
+    let data = json;//= JSON.parse(json);
+    let res = "";
+    res += "<div>";
+    if (data) {
+        for (let i = 0; i < data.length; ++i) {
+            res += "<p>" + data.Id + "</p>";
+            res += "<p>" + data.Name + "</p>";
         }
     }
     res += "</div>";
@@ -67,11 +107,50 @@ function getHtmlCompetenceList(json) {
     return res;
 }
 
+function getHtmlCompanyPage(json) {
+    let data = json;
+    let res = "";
+    res += "<div style='border:1px solid black;'>";
+    res += "<p>" + data.Id + "</p>";
+    res += "<p>" + data.Name + "</p>";
+    res += "<p>" + data.Description + "</p>";
+    res += "<p>" + data.Number + "</p>";
+    res += "<p>" + data.Email + "</p>";
+    res += "<p>" + data.CanEdit + "</p>";
+    
+    res += "</div>";
+    return res;
+}
 
 
+function getHtmlProjectPage(json) {
+    let data = json;
+    let res = "";
+    res += "<div style='border:1px solid black;'>";
+    res += "<p>" + data.Id + "</p>";//
+    res += "<p>" + data.Name + "</p>";
+    res += "<p>" + data.Description + "</p>";
+    res += "<p>" + data.Payment + "</p>";
+    res += "<p>" + data.CompanyId + "</p>";
+    res += "<p>" + data.CompanyName + "</p>";
+    res += "<p>" + data.CanEdit + "</p>";
+    res += "<p>" + data.Status + "</p>";
+    if (data.Competences)
+        for (let i = 0; i < data.Competences.length; ++i) {
+            getHtmlCompetence(data.Competences[i]);
+        }
+    if (data.Towns)
+        for (let i = 0; i < data.Towns.length; ++i) {
+            getHtmlTowns(data.Towns[i]);
+        }
+    if (data.ImagesId)
+        for (let i = 0; i < data.Images.length; ++i) {
+            res += "<img src='" + data.Images[i].Path + "'/>";//#TODO будет относительный
+        }
+    res += "</div>";
+}
 
 //------------------------------END SHOW JSON--------------------------
-
 
 
 
@@ -100,6 +179,7 @@ function SetMainPage() {
 
 
 ///---------------------------SHOWS PAGES---------------
+
 
 
 //функция отрисовки страницы логина
@@ -162,6 +242,25 @@ function showCreateCompanyForm() {
 
 }
 
+function showCreateProjectForm() {
+    let div = document.getElementById('createProject');
+    if (div.innerHTML.trim())
+        return;
+    goAjaxRequest({
+        type: 'GET', data: {
+        }, url: '/home/create-project',
+        funcSuccess: function (xhr, status, jqXHR) {
+            div.innerHTML = xhr;
+        },
+        funcError: function (xhr, status, jqXHR) {
+            alert('ошибка');
+        }
+    });
+
+
+}
+
+
 function showCompanysPage() {
     goAjaxRequest({
         type: 'GET', data: {
@@ -181,11 +280,12 @@ function showProjectsPage() {
 
     goAjaxRequest({
         type: 'GET', data: {
-        }, url: '/api/user/get-actual-project',
+        }, url: '/home/projects-page',
         funcSuccess: function (xhr, status, jqXHR) {
-            let html_ = getHtmlProjectsList(xhr);
-            setMainContent(html_);
+            //let html_ = getHtmlProjectsList(xhr);
+            setMainContent(xhr);
             //var ggg = 10;
+            loadProjectsList();
         },
         funcError: function (xhr, status, jqXHR) {
             alert('ошибка');
@@ -214,8 +314,36 @@ function showCompetencePage() {
 
 ///---------------------------END SHOWS PAGES---------------
 
+function loadCompanyPage(id) {
+    goAjaxRequest({//
+        type: 'GET', data: { id: id}, url: '/api/user/get-company',
+        funcSuccess: function (xhr, status, jqXHR) {
+            let html_ = getHtmlCompanyPage(xhr);
+            setMainContent(html_);
+            //var ggg = 10;
+        },
+        funcError: function (xhr, status, jqXHR) {
+            alert('ошибка');
+        }
+    });
+
+}
 
 
+function loadProjectPage(id) {
+    goAjaxRequest({
+        type: 'GET', data: {}, url: '/api/user/get-project/' + id,
+        funcSuccess: function (xhr, status, jqXHR) {
+            let html_ = getHtmlProjectPage(xhr);
+            setMainContent(html_);
+            //var ggg = 10;
+        },
+        funcError: function (xhr, status, jqXHR) {
+            alert('ошибка');
+        }
+    });
+
+}
 
 function tryRegister() {
 
@@ -383,6 +511,73 @@ function saveNewCompany() {
 
 
 }
+
+function loadProjectsList() {
+    let div = document.getElementById('allProjects');
+    if (div.innerHTML.trim())
+        return;
+    goAjaxRequest({
+        type: 'GET', data: {
+        }, url: '/api/user/get-actual-project',
+        funcSuccess: function (xhr, status, jqXHR) {
+            let html_ = getHtmlProjectsList(xhr);
+            div.innerHTML = html_;
+            //var ggg = 10;
+        },
+        funcError: function (xhr, status, jqXHR) {
+            alert('ошибка');
+        }
+    });
+
+}
+
+function loadMyProjectsList() {
+    let div = document.getElementById('myProjects');
+    if (div.innerHTML.trim())
+        return;
+    goAjaxRequest({
+        type: 'GET', data: {
+        }, url: '/api/user/get-user-responsibility-projects',
+        funcSuccess: function (xhr, status, jqXHR) {
+            let html_ = getHtmlProjectsList(xhr);
+            div.innerHTML = html_;
+            //var ggg = 10;
+        },
+        funcError: function (xhr, status, jqXHR) {
+            alert('ошибка');
+        }
+    });
+
+
+}
+
+
+function saveNewProject() {
+
+    var data = new FormData();
+    var massFiles1 = document.getElementById('newProjectImage').files;
+
+    $.each(massFiles1, function (key, value) {
+        data.append('uploadedFile', value);//name обязательно такое же как и в upload.single('file') 
+    });
+    data.append('Name', document.getElementById('newProjectName').value);
+    data.append('Description', document.getElementById('newProjectDescription').value);
+    data.append('Payment', document.getElementById('newProjectPayment').value);
+    data.append('CompanyId', document.getElementById('newProjectCompanyId').value);
+    data.append('Status', document.getElementById('newProjectStatus').value);
+    
+    goAjaxRequest({
+        type: 'POST', data: data, url: '/api/company/create-project',
+        funcSuccess: function (xhr, status, jqXHR) {
+            document.getElementById('createdProject').innerHTML = 'id созданного проекта--' + xhr.Id;//#TOdo тут должна быть ссылка
+
+            //var ggg = 10;
+        }
+    }, true);
+
+
+}
+
 
 
 ;;;

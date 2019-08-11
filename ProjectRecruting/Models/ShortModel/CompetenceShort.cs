@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace ProjectRecruting.Models
+namespace ProjectRecruting.Models.ShortModel
 {
     public class CompetenceShort
     {
@@ -15,7 +15,7 @@ namespace ProjectRecruting.Models
         {
 
         }
-        public CompetenceShort(string name,int id):this()
+        public CompetenceShort(string name, int id) : this()
         {
             Name = name;
             Id = id;

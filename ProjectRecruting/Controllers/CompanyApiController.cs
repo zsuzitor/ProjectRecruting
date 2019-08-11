@@ -61,9 +61,9 @@ namespace ProjectRecruting.Controllers
             _db.Companys.Add(newCompany);
             await _db.SaveChangesAsync();
 
-            await newCompany.SetImage(uploadedFile, _appEnvironment);
+            await newCompany.SetImage(_db, uploadedFile, _appEnvironment);
 
-            _db.CompanyUsers.Add(new Models.Domain.ManyToMany.CompanyUser(userId, newCompany.Id));
+            _db.CompanyUsers.Add(new Models.Domain.ManyToMany.CompanyUser(userId, newCompany.Id, StatusInCompany.Moderator));
             await _db.SaveChangesAsync();
             //return newCompany;
             Response.ContentType = "application/json";
@@ -122,7 +122,7 @@ namespace ProjectRecruting.Controllers
             {
                 oldCompany.ChangeData(company.Name, company.Description, company.Number, company.Email);//, company.Image);
                 await _db.SaveChangesAsync();
-                await oldCompany.SetImage(uploadedFile, _appEnvironment);
+                await oldCompany.SetImage(_db, uploadedFile, _appEnvironment);
             }
             catch (DbUpdateConcurrencyException ex)
             {
@@ -200,7 +200,7 @@ namespace ProjectRecruting.Controllers
         /// <param name="project">данные проекта</param>
         /// <param name="competences">список компетенций</param>
         /// <param name="townNames">список названий городов</param>
-        /// <param name="uploads">изображения</param>
+        /// <param name="uploadedFile">изображения</param>
         /// <returns></returns>
         /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
         /// <response code="404">компания не найдена</response>
@@ -209,7 +209,8 @@ namespace ProjectRecruting.Controllers
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
         [HttpPost("create-project")]
-        public async Task<int?> CreateProject([FromForm]Project project, [FromForm]string[] competences, [FromForm]string[] townNames, [FromForm]IFormFileCollection uploads = null)
+        public async Task<int?> CreateProject([FromForm]Project project, [FromForm]string[] competences = null,
+            [FromForm]string[] townNames = null, [FromForm] IFormFile[] uploadedFile=null)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -224,16 +225,23 @@ namespace ProjectRecruting.Controllers
                 return null;
             }
 
+            if (townNames == null || townNames.Length == 0)
+            {
+                Response.StatusCode = 400;
+                return null;
+            }
+
             if (!await ApplicationUser.CheckAccessEditCompany(_db, project.CompanyId, userId))
             {
                 Response.StatusCode = 404;
                 return null;
             }
+            
 
             Project newProject = new Project(project.Name, project.Description, project.Payment, project.CompanyId);
             _db.Projects.Add(newProject);
             await _db.SaveChangesAsync();
-            await newProject.AddImagesToDbSystem(_db, _appEnvironment, uploads);
+            await newProject.AddImagesToDbSystem(_db, _appEnvironment, uploadedFile);
             await newProject.AddCompetences(_db, competences);
 
             await Project.AddTowns(_db, newProject.Id, townNames.ToList());
@@ -250,7 +258,7 @@ namespace ProjectRecruting.Controllers
         /// изменение проекта
         /// </summary>
         /// <param name="project">новые данные проекта</param>
-        /// <param name="uploads">изображения</param>
+        /// <param name="uploadedFile">изображения</param>
         /// <param name="deleteImages">ids изображений для удаления</param>
         /// <param name="competences">список названий компетенций</param>
         /// <param name="competenceIds">список id компетенций для удаления</param>
@@ -264,8 +272,8 @@ namespace ProjectRecruting.Controllers
         [ProducesResponseType(404)]
         [ProducesResponseType(527)]
         [HttpPost("change-project")]
-        public async Task<bool> ChangeProject([FromForm]Project project, [FromForm]IFormFileCollection uploads,
-            [FromForm] int[] deleteImages, [FromForm]string[] competences, [FromForm]int[] competenceIds)
+        public async Task<bool> ChangeProject([FromForm]Project project,[FromForm] int[] deleteImages, 
+            [FromForm]string[] competences, [FromForm]int[] competenceIds, [FromForm]IFormFile[] uploadedFile = null)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -312,7 +320,7 @@ namespace ProjectRecruting.Controllers
                 }
             }
 
-            await oldProj.AddImagesToDbSystem(_db, _appEnvironment, uploads);
+            await oldProj.AddImagesToDbSystem(_db, _appEnvironment, uploadedFile);
 
             return true;
 

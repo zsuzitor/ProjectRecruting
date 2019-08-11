@@ -34,6 +34,12 @@ namespace ProjectRecruting.Controllers
 
             return PartialView();
         }
+        //[HttpGet("company-page")]
+        //public IActionResult CompanyPage()
+        //{
+
+        //    return PartialView();
+        //}
 
         [HttpGet("projects-page")]
         public IActionResult ProjectsPage()
@@ -44,6 +50,13 @@ namespace ProjectRecruting.Controllers
 
         [HttpGet("create-company")]
         public IActionResult CreateCompany()
+        {
+
+            return PartialView();
+        }
+
+        [HttpGet("create-project")]
+        public IActionResult CreateProject()
         {
 
             return PartialView();

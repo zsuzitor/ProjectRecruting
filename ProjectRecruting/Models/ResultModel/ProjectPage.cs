@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models.Domain;
+using ProjectRecruting.Models.ShortModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,20 +20,22 @@ namespace ProjectRecruting.Models.ResultModel
 
         public int CompanyId { get; set; }
         public string CompanyName { get; set; }
+
+        public bool CanEdit { get; set; }
         public StatusProject Status { get; set; }
 
         public List<CompetenceShort> Competences { get; set; }
 
-        public List<string> Towns { get; set; }
-        public List<int> ImagesId { get; set; }
+        public List<TownShort> Towns { get; set; }
+        public List<ImageShort> Images { get; set; }
 
 
         public ProjectPage()
         {
-
+            CanEdit = false;
         }
 
-        public async static Task<ProjectPage> LoadAllForView(ApplicationDbContext db,Project project)
+        public async static Task<ProjectPage> LoadAllForView(ApplicationDbContext db,Project project,string userId)
         {
             if (project == null)
                 return null;
@@ -45,16 +48,16 @@ namespace ProjectRecruting.Models.ResultModel
                 Status = project.Status,
             };
 
-            //#TODO вынести по методам
-            res.CompanyName=(await Company.Get(db,res.CompanyId)).Name;
-            res.Competences=await db.CompetenceProjects.Where(x1=>x1.ProjectId==res.Id).
-                Join(db.Competences,x1=>x1.CompetenceId,x2=>x2.Id,(x1,x2)=> new CompetenceShort(x2)).ToListAsync();
+       
+            res.CompanyName = await project.GetCompanyName(db);
+            //res.CompanyName=(await Company.Get(db,res.CompanyId)).Name;
+            res.Competences =await Project.GetCompetences(db,res.Id);
+            res.Towns = await Project.GetTownsShort(db,res.Id);
+            res.Images = await Project.GetImagesShort(db, res.Id);
 
-            res.Towns=await db.ProjectTowns.Where(x1=>x1.ProjectId==res.Id).
-                Join(db.Towns, x1 => x1.TownId, x2 => x2.Id, (x1, x2) => x2.Name).ToListAsync();
+            res.CanEdit = await project.CheckAccess(db, userId) ;
 
-            res.ImagesId = await db.Images.Where(x1=>x1.ProjectId==res.Id).Select(x1=>x1.Id).ToListAsync();
-
+            return res;
         }
 
 

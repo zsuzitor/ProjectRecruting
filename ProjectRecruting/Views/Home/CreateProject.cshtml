@@ -1,0 +1,23 @@
+﻿
+@{
+    Layout = null;
+}
+
+
+    <form>
+        <input id="newProjectName" name="Name" type="text" />
+        <input id="newProjectDescription" name="Description" type="text" />
+        <input id="newProjectPayment" readonly name="Payment" type="text" />
+        <input id="newProjectCompanyId" name="CompanyId" type="text" />
+        <input id="newProjectStatus" name="Status" type="text" />
+
+        <div>компетенции</div>
+        <div>ответственные</div>
+        <div>города</div>
+        <div><input id="newProjectImage" name="uploadedFile" multiple type="file" /></div>
+
+        <button onclick="saveNewProject()" type="button">Создать</button>
+    </form>
+<div id="createdProject">
+    ссылка на созданный проект
+</div>

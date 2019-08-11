@@ -23,12 +23,12 @@ namespace ProjectRecruting.Data
         public DbSet<ProjectTown> ProjectTowns { get; set; }
         public DbSet<ProjectUser> ProjectUsers { get; set; }
         public DbSet<CompetenceUser> CompetenceUsers { get; set; }
-        
+
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
-           // Database.EnsureCreated();
+            // Database.EnsureCreated();
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -58,7 +58,7 @@ namespace ProjectRecruting.Data
              .HasOne(x => x.Competence)
             .WithMany(x => x.CompetenceUsers);
 
-            
+
 
             modelBuilder.Entity<ProjectTown>()
             .HasOne(x => x.Project)

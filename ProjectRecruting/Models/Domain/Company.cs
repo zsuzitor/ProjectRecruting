@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models.Domain.ManyToMany;
+using ProjectRecruting.Models.ShortModel;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -22,6 +23,7 @@ namespace ProjectRecruting.Models.Domain
         public string Number { get; set; }
         public string Email { get; set; }
 
+        public string ImagePath { get; set; }
 
         [Timestamp]
         public byte[] RowVersion { get; set; }
@@ -67,19 +69,36 @@ namespace ProjectRecruting.Models.Domain
             //var companyUser = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.CompanyId == companyId && x1.UserId == userId);
             //return await db.Companys.FirstOrDefaultAsync(x1 => x1.Id == companyId);
             return await db.Companys.Join(db.CompanyUsers.
-                Where(x1 => x1.CompanyId == companyId && x1.UserId == userId), x1 => x1.Id, x2 => x2.CompanyId, (x1, x2) => x1).FirstOrDefaultAsync();
+                Where(x1 => x1.CompanyId == companyId && x1.UserId == userId&&x1.Status== StatusInCompany.Moderator),
+                x1 => x1.Id, x2 => x2.CompanyId, (x1, x2) => x1).FirstOrDefaultAsync();
+
+        }
+        public async static Task<bool> CheckAccess(ApplicationDbContext db, string userId, int companyId)
+        {
+            //var companyUser = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.CompanyId == companyId && x1.UserId == userId);
+            //return await db.Companys.FirstOrDefaultAsync(x1 => x1.Id == companyId);
+            return (await 
+                db.CompanyUsers.
+                Where(x1 => x1.CompanyId == companyId && x1.UserId == userId && x1.Status == StatusInCompany.Moderator).CountAsync())>0;
 
         }
 
-        public async Task SetImage(IFormFile[] uploadedFile, IHostingEnvironment appEnvironment)
+        public async Task SetImage(ApplicationDbContext db,IFormFile[] uploadedFile, IHostingEnvironment appEnvironment)
         {
             if (uploadedFile == null || uploadedFile.Length == 0)
                 return;
             var fileName = ContentDispositionHeaderValue.Parse(uploadedFile[0].ContentDisposition).FileName.Trim('"');
             //получаем формат
             var FileExtension = Path.GetExtension(fileName);
-            string path = appEnvironment.WebRootPath + "/images/uploads/company_" + this.Id + "_mainimage"+ FileExtension;// + uploadedFile[0].FileName; #TODO формат файла
-            await Image.CheckAndCreate(uploadedFile, path);
+            string shortPath = "/images/uploads/company_" + this.Id + "_mainimage" + FileExtension;
+            string path = appEnvironment.WebRootPath + shortPath;// + uploadedFile[0].FileName; #TODO формат файла
+
+            bool created=await Image.CheckAndCreate(uploadedFile, path);
+            if(created)
+            {
+                this.ImagePath = shortPath;
+                await db.SaveChangesAsync();
+            }
             //if (uploadedFile != null && uploadedFile.Length > 0)
             //{
                 
@@ -107,13 +126,12 @@ namespace ProjectRecruting.Models.Domain
             //    OrderBy(x1=>x1.count).Select(x1=>x1.company).ToList();
 
 
-            var t11 = db.ProjectTowns.Where(x1 => townId == null ? true : (x1.TownId == townId)).
+            var idWithCount = db.ProjectTowns.Where(x1 => townId == null ? true : (x1.TownId == townId)).
               GroupJoin(db.ProjectUsers, x1 => x1.ProjectId, x2 => x2.ProjectId, (x, y) => new { proj = x, prUser = y }).
               SelectMany(x => x.prUser.DefaultIfEmpty(), (x, y) => new { x.proj.ProjectId, y.Id }).GroupBy(x1 => x1.ProjectId).
               Join(db.Projects, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { companyId = x2.CompanyId, count = x1.Count() }).
               GroupBy(x1 => x1.companyId).Select(x1 => new { x1.Key, count = x1.Sum(x2 => x2.count) });//.ToList();
-            return db.Companys.
-                           GroupJoin(t11, x1 => x1.Id, x2 => x2.Key, (x, y) => new { company = x, lists = y }).
+            return db.Companys.GroupJoin(idWithCount, x1 => x1.Id, x2 => x2.Key, (x, y) => new { company = x, lists = y }).
                            SelectMany(x => x.lists.DefaultIfEmpty(), (x, y) => new { x.company, count = (y == null ? 0 : y.count) }).
                            OrderByDescending(x1=>x1.count).Select(x1=>x1.company);
         }
@@ -135,22 +153,52 @@ namespace ProjectRecruting.Models.Domain
         public async Task<bool> AddHeadUser(ApplicationDbContext db, string userId)
         {
             var userRelation = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.UserId == userId);
-            if (userRelation != null)
+            if (userRelation == null)
                 return false;
-            db.CompanyUsers.Add(new Models.Domain.ManyToMany.CompanyUser(userId, this.Id));
-            await db.SaveChangesAsync();
-            return true;
+            if (userRelation.Status == StatusInCompany.Employee || userRelation.Status == StatusInCompany.RequestedByUser)
+            {
+                userRelation.Status = StatusInCompany.Moderator;
+                db.SaveChanges();
+                return true;
+            }
+            return false;
         }
 
         public async Task<bool> DeleteHeadUser(ApplicationDbContext db, string userId)
         {
-            var userRelation = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.UserId == userId);
+            var userRelation = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.UserId == userId && x1.Status == StatusInCompany.Moderator);
             if (userRelation == null)
                 return false;
-            db.CompanyUsers.Remove(userRelation);
+            //db.CompanyUsers.Remove(userRelation);
+            userRelation.Status = StatusInCompany.Empty;
             await db.SaveChangesAsync();
             return true;
         }
+
+        public async Task<bool> AddRequest(ApplicationDbContext db, string userId, StatusInCompany status)
+        {
+            if (status != StatusInCompany.RequestedByCompany && status != StatusInCompany.RequestedByUser)
+                return false;
+            if(string.IsNullOrWhiteSpace(userId))
+                return false;
+            var userRelation = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.UserId == userId);
+            if(userRelation?.Status== StatusInCompany.Empty)
+            {
+                userRelation.Status = status;
+                await db.SaveChangesAsync();
+                return true;
+            }
+            if (userRelation == null)
+            {
+                db.CompanyUsers.Add(new CompanyUser(userId,this.Id,status));
+                await db.SaveChangesAsync();
+                return true;
+            }
+           
+                return false;
+        }
+        
+
 
     }
 }

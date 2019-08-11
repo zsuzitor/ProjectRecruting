@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models.Domain.ManyToMany;
+using ProjectRecruting.Models.ShortModel;
+using ProjectRecruting.Models.ResultModel;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -61,7 +63,7 @@ namespace ProjectRecruting.Models.Domain
 
 
         //НЕ загрузит их в сущность(проекта), только добавит в бд
-        public async Task<List<Image>> AddImagesToDbSystem(ApplicationDbContext db, IHostingEnvironment appEnvironment, IFormFileCollection images)
+        public async Task<List<Image>> AddImagesToDbSystem(ApplicationDbContext db, IHostingEnvironment appEnvironment, IFormFile[] images)
         {
             List<Image> res = new List<Image>();
             if (images == null)
@@ -79,15 +81,20 @@ namespace ProjectRecruting.Models.Domain
                 bool isImage = Image.IsImage(bytes);
                 if (!isImage)
                     continue;
-                Image img = new Image() { ProjectId = this.Id };
-                db.Images.Add(img);
-                await db.SaveChangesAsync();
-                res.Add(img);
-
                 var fileName = ContentDispositionHeaderValue.Parse(i.ContentDisposition).FileName.Trim('"');
                 //получаем формат
                 var FileExtension = Path.GetExtension(fileName);
-                using (var fileStream = new FileStream(appEnvironment.WebRootPath + "/images/uploads/project_" + this.Id + "_" + img.Id+ FileExtension, FileMode.Create))
+                
+                Image img = new Image() { ProjectId = this.Id };
+                db.Images.Add(img);
+                await db.SaveChangesAsync();
+                string shortPath = "/images/uploads/project_" + this.Id + "_" + img.Id + FileExtension;
+                img.Path = shortPath;
+                await db.SaveChangesAsync();
+                res.Add(img);
+
+                
+                using (var fileStream = new FileStream(appEnvironment.WebRootPath + shortPath, FileMode.Create))
                 {
                     await fileStream.WriteAsync(bytes);
                     // await uploadedFile[0].CopyToAsync(fileStream);
@@ -121,8 +128,15 @@ namespace ProjectRecruting.Models.Domain
             return res;
         }
 
-        //просто удаление, есть ли доступ у пользователя не проверяется
-        public async static Task<List<Image>> DeleteImagesFromDb(ApplicationDbContext db, int projectId, int[] imageIds)
+        public async  Task<string> GetCompanyName(ApplicationDbContext db)
+        {
+            return (await Company.Get(db, this.CompanyId)).Name;
+        }
+
+
+
+            //просто удаление, есть ли доступ у пользователя не проверяется
+            public async static Task<List<Image>> DeleteImagesFromDb(ApplicationDbContext db, int projectId, int[] imageIds)
         {
             if (imageIds == null || imageIds.Length == 0)
                 return new List<Image>();
@@ -132,6 +146,17 @@ namespace ProjectRecruting.Models.Domain
             return images;
         }
 
+
+        public async static Task<List<int>> GetImagesId(ApplicationDbContext db,int projectId)
+        {
+            return await db.Images.Where(x1 => x1.ProjectId == projectId).Select(x1 => x1.Id).ToListAsync();
+        }
+
+        public async static Task<List<ImageShort>> GetImagesShort(ApplicationDbContext db, int projectId)
+        {
+            return await db.Images.Where(x1 => x1.ProjectId == projectId).Select(x1 => new ImageShort(x1)).ToListAsync();
+        }
+        
 
         public void ChangeData(string name, string description, bool? payment)
         {
@@ -150,8 +175,10 @@ namespace ProjectRecruting.Models.Domain
         }
 
 
-        public async static Task<Project> Get(ApplicationDbContext db, int id)
+        public async static Task<Project> Get(ApplicationDbContext db, int? id)
         {
+            if (id == null)
+                return null;
             return await db.Projects.FirstOrDefaultAsync(x1 => x1.Id == id);
         }
 
@@ -172,7 +199,7 @@ namespace ProjectRecruting.Models.Domain
             var record = await db.Entry(this).Collection(x1 => x1.ProjectUsers).Query().FirstOrDefaultAsync(x1 => x1.UserId == userId);
             if (record == null)
                 return false;
-            if (record.Status == StatusInProject.CanceledByStudent || record.Status == StatusInProject.Not)
+            if (record.Status == StatusInProject.CanceledByStudent || record.Status == StatusInProject.Empty)
                 return false;
             if (!await record.ChangeStatus(db, newStatus))
                 return null;
@@ -202,6 +229,12 @@ namespace ProjectRecruting.Models.Domain
             return exists;
         }
 
+
+        public async static Task<List<CompetenceShort>> GetCompetences(ApplicationDbContext db,int projectId)
+        {
+            return await db.CompetenceProjects.Where(x1 => x1.ProjectId == projectId).
+                 Join(db.Competences, x1 => x1.CompetenceId, x2 => x2.Id, (x1, x2) => new CompetenceShort(x2)).ToListAsync();
+        }
 
         //добавление без валидации
         public async Task<List<Competence>> AddCompetences(ApplicationDbContext db, string[] competences)
@@ -268,12 +301,6 @@ namespace ProjectRecruting.Models.Domain
             return res;
         }
 
-        //без сортировки, просто все записи в городе
-        public async static Task<List<int>> GetByTown(ApplicationDbContext db, int townId)
-        {
-            return await db.ProjectTowns.Where(x1 => x1.TownId == townId).Select(x1 => x1.ProjectId).Distinct().ToListAsync();
-        }
-
         //сортирует список id по актуальности
         public async static Task<List<int>> SortByActual(ApplicationDbContext db, List<int> projectIds)
         {
@@ -293,11 +320,16 @@ namespace ProjectRecruting.Models.Domain
         //составляем запрос, данные не учитывая статус проекта
         public static IQueryable<Project> GetActualQueryEntity(ApplicationDbContext db, int? townId)//#TODO можно вынести db.Projects в параметры а этот метод сделать оболочкой, если нужно будет
         {
+            //return db.ProjectTowns.Where(x1 => townId == null ? true : (x1.TownId == townId)).
+            //    GroupJoin(db.ProjectUsers, x1 => x1.ProjectId, x2 => x2.ProjectId, (x, y) => new { proj = x, prUser = y }).
+            //    SelectMany(x => x.prUser.DefaultIfEmpty(), (x, y) => x.proj.ProjectId).GroupBy(x1 => x1).Select(x1 => new { projId = x1.Key, count = x1.Count() }).
+            //    Join(db.Projects, x1 => x1.projId, x2 => x2.Id, (x1, x2) => new { proj = x2, count = x1.count }).
+            //    OrderByDescending(x1 => x1.count).Select(x1 => x1.proj);
+
             return db.ProjectTowns.Where(x1 => townId == null ? true : (x1.TownId == townId)).
-                GroupJoin(db.ProjectUsers, x1 => x1.ProjectId, x2 => x2.ProjectId, (x, y) => new { proj = x, prUser = y }).
-                SelectMany(x => x.prUser.DefaultIfEmpty(), (x, y) => x.proj.ProjectId).GroupBy(x1 => x1).Select(x1 => new { projId = x1.Key, count = x1.Count() }).
-                Join(db.Projects, x1 => x1.projId, x2 => x2.Id, (x1, x2) => new { proj = x2, count = x1.count }).
-                OrderByDescending(x1 => x1.count).Select(x1 => x1.proj);
+             GroupJoin(db.ProjectUsers, x1 => x1.ProjectId, x2 => x2.ProjectId, (x, y) => new { projTown = x, prUser = y }).
+             SelectMany(x => x.prUser.DefaultIfEmpty(), (x, y) => new { x.projTown.ProjectId, y.Id }).GroupBy(x1 => x1.ProjectId).
+             Join(db.Projects, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { proj = x2, count = x1.Count() }).OrderBy(x1 => x1.count).Select(x1 => x1.proj);
 
         }
         //аналогично методу GetActualQueryEntity, но без закрытых проектов
@@ -372,6 +404,21 @@ namespace ProjectRecruting.Models.Domain
         }
 
 
+        public async static Task<List<TownShort>> GetTownsShort(ApplicationDbContext db, int projectId)
+        {
+            return await db.ProjectTowns.Where(x1 => x1.ProjectId == projectId).
+                Join(db.Towns, x1 => x1.TownId, x2 => x2.Id, (x1, x2) => new TownShort(x2)).ToListAsync();
+        }
+
+
+        //без сортировки, просто все записи в городе
+        public async static Task<List<int>> GetByTown(ApplicationDbContext db, int townId)
+        {
+            return await db.ProjectTowns.Where(x1 => x1.TownId == townId).Select(x1 => x1.ProjectId).Distinct().ToListAsync();
+        }
+
+
+
         public async static Task<List<Town>> AddTowns(ApplicationDbContext db, int projectId, List<string> townNames)
         {
             var listTown = await Town.GetOrCreate(db, townNames);
@@ -388,7 +435,10 @@ namespace ProjectRecruting.Models.Domain
             return forAdd;
         }
 
+        public async Task<bool> CheckAccess(ApplicationDbContext db, string userId)
+        {
+            return await Company.CheckAccess(db,userId,this.CompanyId);
+        }
 
-
-    }
+        }
 }
