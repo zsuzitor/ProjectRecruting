@@ -69,7 +69,7 @@ namespace ProjectRecruting.Models.Domain
             //var companyUser = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.CompanyId == companyId && x1.UserId == userId);
             //return await db.Companys.FirstOrDefaultAsync(x1 => x1.Id == companyId);
             return await db.Companys.Join(db.CompanyUsers.
-                Where(x1 => x1.CompanyId == companyId && x1.UserId == userId&&x1.Status== StatusInCompany.Moderator),
+                Where(x1 => x1.CompanyId == companyId && x1.UserId == userId && x1.Status == StatusInCompany.Moderator),
                 x1 => x1.Id, x2 => x2.CompanyId, (x1, x2) => x1).FirstOrDefaultAsync();
 
         }
@@ -77,13 +77,13 @@ namespace ProjectRecruting.Models.Domain
         {
             //var companyUser = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.CompanyId == companyId && x1.UserId == userId);
             //return await db.Companys.FirstOrDefaultAsync(x1 => x1.Id == companyId);
-            return (await 
+            return (await
                 db.CompanyUsers.
-                Where(x1 => x1.CompanyId == companyId && x1.UserId == userId && x1.Status == StatusInCompany.Moderator).CountAsync())>0;
+                Where(x1 => x1.CompanyId == companyId && x1.UserId == userId && x1.Status == StatusInCompany.Moderator).CountAsync()) > 0;
 
         }
 
-        public async Task SetImage(ApplicationDbContext db,IFormFile[] uploadedFile, IHostingEnvironment appEnvironment)
+        public async Task SetImage(ApplicationDbContext db, IFormFile[] uploadedFile, IHostingEnvironment appEnvironment)
         {
             if (uploadedFile == null || uploadedFile.Length == 0)
                 return;
@@ -93,15 +93,15 @@ namespace ProjectRecruting.Models.Domain
             string shortPath = "/images/uploads/company_" + this.Id + "_mainimage" + FileExtension;
             string path = appEnvironment.WebRootPath + shortPath;// + uploadedFile[0].FileName; #TODO формат файла
 
-            bool created=await Image.CheckAndCreate(uploadedFile, path);
-            if(created)
+            bool created = await Image.CheckAndCreate(uploadedFile, path);
+            if (created)
             {
                 this.ImagePath = shortPath;
                 await db.SaveChangesAsync();
             }
             //if (uploadedFile != null && uploadedFile.Length > 0)
             //{
-                
+
             //    // сохраняем файл в папку Files в каталоге wwwroot
             //    using (var fileStream = new FileStream(appEnvironment.WebRootPath + path, FileMode.Create))
             //    {
@@ -133,71 +133,113 @@ namespace ProjectRecruting.Models.Domain
               GroupBy(x1 => x1.companyId).Select(x1 => new { x1.Key, count = x1.Sum(x2 => x2.count) });//.ToList();
             return db.Companys.GroupJoin(idWithCount, x1 => x1.Id, x2 => x2.Key, (x, y) => new { company = x, lists = y }).
                            SelectMany(x => x.lists.DefaultIfEmpty(), (x, y) => new { x.company, count = (y == null ? 0 : y.count) }).
-                           OrderByDescending(x1=>x1.count).Select(x1=>x1.company);
+                           OrderByDescending(x1 => x1.count).Select(x1 => x1.company);
         }
 
         //получаем полные данные
         public async static Task<List<CompanyShort>> GetActualEntity(ApplicationDbContext db, int? townId)
         {
-            return await Company.GetActualQueryEntity(db, townId).Select(x1=>new CompanyShort(x1)).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
+            return await Company.GetActualQueryEntity(db, townId).Select(x1 => new CompanyShort(x1)).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
         }
 
         //все проекты не зависимо от статуса
         public async static Task<List<ProjectShort>> GetProjectsByActual(ApplicationDbContext db, int companyId, int? townId)
         {
-            var res= await Project.GetActualQueryEntity(db, townId).Where(x1 => x1.CompanyId == companyId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
-            await ProjectShort.SetMainImages(db,res);
+            var res = await Project.GetActualQueryEntity(db, townId).Where(x1 => x1.CompanyId == companyId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            await ProjectShort.SetMainImages(db, res);
             return res;
         }
 
-        public async Task<bool> AddHeadUser(ApplicationDbContext db, string userId)
+        public async Task<bool?> RemoveUser(ApplicationDbContext db, string userId, StatusInCompany status)
         {
-            var userRelation = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.UserId == userId);
+
+            var userRelation = await db.Entry(this).Collection(x1 => x1.CompanyUsers).Query().FirstOrDefaultAsync(x1 => x1.UserId == userId && x1.Status == status);
+            if (userRelation == null)
+                return false;
+            //db.CompanyUsers.Remove(userRelation);
+            if (!await userRelation.ChangeStatus(db, StatusInCompany.Empty))
+                return null;
+
+            return true;
+        }
+
+        //null если запись была изменена
+        public async Task<bool?> AddHeadUser(ApplicationDbContext db, string userId)
+        {
+            var userRelation = await db.Entry(this).Collection(x1 => x1.CompanyUsers).Query().FirstOrDefaultAsync(x1 => x1.UserId == userId);
             if (userRelation == null)
                 return false;
             if (userRelation.Status == StatusInCompany.Employee || userRelation.Status == StatusInCompany.RequestedByUser)
             {
-                userRelation.Status = StatusInCompany.Moderator;
-                db.SaveChanges();
+
+                if (!await userRelation.ChangeStatus(db, StatusInCompany.Moderator))
+                    return null;
                 return true;
             }
             return false;
         }
 
-        public async Task<bool> DeleteHeadUser(ApplicationDbContext db, string userId)
-        {
-            var userRelation = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.UserId == userId && x1.Status == StatusInCompany.Moderator);
-            if (userRelation == null)
-                return false;
-            //db.CompanyUsers.Remove(userRelation);
-            userRelation.Status = StatusInCompany.Empty;
-            await db.SaveChangesAsync();
-            return true;
-        }
 
-        public async Task<bool> AddRequest(ApplicationDbContext db, string userId, StatusInCompany status)
+
+        public async Task<bool?> AddRequest(ApplicationDbContext db, string userId, StatusInCompany status)
         {
             if (status != StatusInCompany.RequestedByCompany && status != StatusInCompany.RequestedByUser)
                 return false;
-            if(string.IsNullOrWhiteSpace(userId))
+            if (string.IsNullOrWhiteSpace(userId))
                 return false;
-            var userRelation = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.UserId == userId);
-            if(userRelation?.Status== StatusInCompany.Empty)
+            //var userRelation = await db.CompanyUsers.FirstOrDefaultAsync(x1 => x1.UserId == userId);
+            var userRelation = await db.Entry(this).Collection(x1 => x1.CompanyUsers).Query().FirstOrDefaultAsync(x1 => x1.UserId == userId);
+            if (userRelation?.Status == StatusInCompany.Empty)
             {
-                userRelation.Status = status;
-                await db.SaveChangesAsync();
+                if (!await userRelation.ChangeStatus(db, status))
+                    return null;
                 return true;
             }
             if (userRelation == null)
             {
-                db.CompanyUsers.Add(new CompanyUser(userId,this.Id,status));
+                db.CompanyUsers.Add(new CompanyUser(userId, this.Id, status));
                 await db.SaveChangesAsync();
                 return true;
             }
-           
-                return false;
+
+            return false;
         }
-        
+
+
+        //создает если надо и изменяет запись .(если записи нет то создаст ее.) у записи будет переданный статус, нет валидации!!!
+        //null-если ошибка 
+        public async Task<bool?> CreateChangeStatusUser(ApplicationDbContext db, StatusInCompany newStatus, string userId)
+        {
+            bool exists = false;
+            var record = await db.Entry(this).Collection(x1 => x1.CompanyUsers).Query().FirstOrDefaultAsync(x1 => x1.UserId == userId);
+            if (record == null)
+            {
+                db.CompanyUsers.Add(new CompanyUser(userId, this.Id, newStatus));
+                await db.SaveChangesAsync();
+                exists = false;
+            }
+            else
+            {
+                exists = true;
+                if (!await record.ChangeStatus(db, newStatus))
+                    return null;
+            }
+
+            return exists;
+        }
+
+        //измнение руководителем, дополнительная валидация, валидация только на изменяЕМЫЙ статус
+        //public async Task<bool?> ChangeStatusUserByLead(ApplicationDbContext db, StatusInCompany newStatus, string userId)
+        //{
+        //    var record = await db.Entry(this).Collection(x1 => x1.CompanyUsers).Query().FirstOrDefaultAsync(x1 => x1.UserId == userId);
+        //    if (record == null)
+        //        return false;
+        //    if (record.Status == StatusInCompany.Empty || record.Status == StatusInCompany.RequestedByCompany)
+        //        return false;
+        //    if (!await record.ChangeStatus(db, newStatus))
+        //        return null;
+        //    return true;
+        //}
 
 
     }

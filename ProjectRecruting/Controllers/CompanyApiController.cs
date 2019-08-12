@@ -135,17 +135,19 @@ namespace ProjectRecruting.Controllers
 
 
         /// <summary>
-        /// добавление управляющего в компанию
+        /// добавление управляющего в компанию(должна быть подана заявка)
         /// </summary>
         /// <param name="companyId">id компании в которую добавляес пользователя</param>
         /// <param name="newUserId">id пользователя которого добавляем</param>
         /// <returns></returns>
         /// <response code="401">. ошибка дешифрации токена, просрочен, изменен, не передан </response>
         /// <response code="404">компания не найдена</response>
+        /// <response code="527">параллельный запрос уже изменил данные</response>
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(527)]
         [HttpPost("add-user-to-company")]
-        public async Task<bool?> AddUserToCompany([FromForm]int companyId, [FromForm] string newUserId)
+        public async Task<bool?> AddUserToCompany([FromForm]int companyId, [FromForm] string newUserId, [FromForm] StatusInCompany newStatus)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -159,7 +161,14 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return null;
             }
-            return await company.AddHeadUser(_db, newUserId);
+            var res = await company.AddHeadUser(_db, newUserId);
+            if (res == null)
+            {
+                Response.StatusCode = 527;
+                return null;
+            }
+
+            return res;
 
         }
 
@@ -170,10 +179,12 @@ namespace ProjectRecruting.Controllers
         /// <param name="companyId">id компании из которой удаляем</param>
         /// <param name="newUserId">id пользователя которого удаляем</param>
         /// <returns></returns>
-        ///  /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+        ///  <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
         /// <response code="404">компания не найдена</response>
+        /// <response code="527">параллельный запрос уже изменил данные</response>
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(527)]
         [HttpPost("delete-user-from-company")]
         public async Task<bool?> DeleteUserFromCompany([FromForm]int companyId, [FromForm] string newUserId)
         {
@@ -189,7 +200,13 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return null;
             }
-            return await company.DeleteHeadUser(_db, newUserId);
+            var res = await company.RemoveUser(_db, newUserId, StatusInCompany.Moderator);
+            if (res == null)
+            {
+                Response.StatusCode = 527;
+                return null;
+            }
+            return res;
 
         }
 
@@ -210,7 +227,7 @@ namespace ProjectRecruting.Controllers
         [ProducesResponseType(404)]
         [HttpPost("create-project")]
         public async Task<int?> CreateProject([FromForm]Project project, [FromForm]string[] competences = null,
-            [FromForm]string[] townNames = null, [FromForm] IFormFile[] uploadedFile=null)
+            [FromForm]string[] townNames = null, [FromForm] IFormFile[] uploadedFile = null)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -236,7 +253,7 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return null;
             }
-            
+
 
             Project newProject = new Project(project.Name, project.Description, project.Payment, project.CompanyId);
             _db.Projects.Add(newProject);
@@ -272,7 +289,7 @@ namespace ProjectRecruting.Controllers
         [ProducesResponseType(404)]
         [ProducesResponseType(527)]
         [HttpPost("change-project")]
-        public async Task<bool> ChangeProject([FromForm]Project project,[FromForm] int[] deleteImages, 
+        public async Task<bool> ChangeProject([FromForm]Project project, [FromForm] int[] deleteImages,
             [FromForm]string[] competences, [FromForm]int[] competenceIds, [FromForm]IFormFile[] uploadedFile = null)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
@@ -354,7 +371,16 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return false;
             }
-            await proj.SetStatus(_db, newStatus);
+            try
+            {
+                await proj.SetStatus(_db, newStatus);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                Response.StatusCode = 527;
+                return false;
+            }
+
             return true;
         }
 

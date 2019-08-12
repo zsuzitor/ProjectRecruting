@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using ProjectRecruting.Data;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -36,6 +38,20 @@ namespace ProjectRecruting.Models.Domain.ManyToMany
         public CompanyUser(string userId, int companyId, StatusInCompany status):this(userId,companyId)
         {
             Status = status;
+        }
+
+        public async Task<bool> ChangeStatus(ApplicationDbContext db, StatusInCompany newStatus)
+        {
+            try
+            {
+                this.Status = newStatus;
+                await db.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                return false;
+            }
+            return true;
         }
 
     }

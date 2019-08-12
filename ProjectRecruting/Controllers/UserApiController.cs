@@ -118,6 +118,63 @@ namespace ProjectRecruting.Controllers
         }
 
 
+        /// <summary>
+        /// изменение(добавление, если ее нет) статуса пользователя в компании(для пользователя)
+        /// </summary>
+        /// <param name="companyId">id проекта</param>
+        /// <param name="newStatus">статус проекта, enum-StatusInProject</param>
+        /// <returns>true-существующая запись обновлена, false-добавлена новая, null-сейчас не обрабатывается-произошла ошибка</returns>
+        ///  <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+        /// <response code="404">компания не найдена</response>
+        /// <response code="400">переданы не валидные данные(статус))</response>
+        /// <response code="406">почта не подтверждена</response>
+        ///  <response code="527">параллельный запрос уже изменил данные</response>
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(406)]
+        [ProducesResponseType(527)]
+        [HttpPost("change-status-student-in-project")]
+        public async Task<bool?> ChangeStatusUserInCompany([FromForm]int companyId, [FromForm]Models.StatusInCompany newStatus)
+        {
+            if (newStatus != StatusInCompany.RequestedByUser && newStatus != StatusInCompany.Empty)
+            {
+                Response.StatusCode = 400;
+                return null;
+            }
+            string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
+            if (status != 0 || userId == null)
+            {
+                Response.StatusCode = 401;
+                return null;
+            }
+
+            //---------------этот кусок нужен
+            //var user = await ApplicationUser.Get(_userManager, userId);
+            //bool mailConfirmed = await _userManager.IsEmailConfirmedAsync(user);
+            //if (!mailConfirmed)
+            //{
+            //    Response.StatusCode = 406;
+            //    return null;
+            //}
+
+
+            var company = await Company.Get(_db, companyId);
+            if (company == null)
+            {
+                Response.StatusCode = 404;
+                return null;
+            }
+            bool? res = await company.CreateChangeStatusUser(_db, newStatus, userId);
+            if (res == null)
+            {
+                Response.StatusCode = 527;
+                return null;// null;
+            }
+
+            return res;
+        }
+
 
         /// <summary>
         /// просмотреть список актуальных проектов для города
