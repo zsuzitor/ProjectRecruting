@@ -66,7 +66,7 @@ using ProjectRecruting.Models;
             WriteLiteral("\r\n<h2>Login</h2>\r\n\r\n<div class=\"row\">\r\n    <div class=\"col-md-4\">\r\n        <section>\r\n            ");
             EndContext();
             BeginContext(166, 1003, false);
-            __tagHelperExecutionContext = __tagHelperScopeManager.Begin("form", global::Microsoft.AspNetCore.Razor.TagHelpers.TagMode.StartTagAndEndTag, "3809c8573aaa4746baa254a0f65a7803", async() => {
+            __tagHelperExecutionContext = __tagHelperScopeManager.Begin("form", global::Microsoft.AspNetCore.Razor.TagHelpers.TagMode.StartTagAndEndTag, "ee3cfabc926c468283aac518757488d4", async() => {
                 BeginContext(172, 990, true);
                 WriteLiteral(@"
                 <h4>Use a local account to log in.</h4>

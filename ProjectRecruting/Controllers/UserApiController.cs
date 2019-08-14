@@ -50,6 +50,7 @@ namespace ProjectRecruting.Controllers
                 return false;
             }
             newUser.Id = userId;
+            newUser.Validation(new ValidationInput());
             var user = await ApplicationUser.ChangeData(_db, _userManager, newUser);
             await user.AddCompetences(_db, competences);
             await user.DeleteCompetences(_db, competenceIds);

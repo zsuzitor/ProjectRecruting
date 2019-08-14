@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+//using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -57,6 +58,7 @@ namespace ProjectRecruting.Controllers
                 return;
             }
             Company newCompany = new Company(company.Name, company.Description, company.Number, company.Email);
+            newCompany.Validation(new ValidationInput());
 
             _db.Companys.Add(newCompany);
             await _db.SaveChangesAsync();
@@ -121,6 +123,7 @@ namespace ProjectRecruting.Controllers
             try
             {
                 oldCompany.ChangeData(company.Name, company.Description, company.Number, company.Email);//, company.Image);
+                oldCompany.Validation(new ValidationInput());
                 await _db.SaveChangesAsync();
                 await oldCompany.SetImage(_db, uploadedFile, _appEnvironment);
             }
@@ -256,11 +259,12 @@ namespace ProjectRecruting.Controllers
 
 
             Project newProject = new Project(project.Name, project.Description, project.Payment, project.CompanyId);
+            newProject.Validation(new ValidationInput());
             _db.Projects.Add(newProject);
             await _db.SaveChangesAsync();
             await newProject.AddImagesToDbSystem(_db, _appEnvironment, uploadedFile);
             await newProject.AddCompetences(_db, competences);
-
+            Town.Validation(new ValidationInput(), townNames);
             await Project.AddTowns(_db, newProject.Id, townNames.ToList());
 
             // await _db.SaveChangesAsync();
@@ -304,7 +308,7 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return false;
             }
-
+            project.Validation(new ValidationInput());
             var oldProj = await ApplicationUser.CheckAccessEditProject(_db, project.Id, userId);
             if (oldProj == null)
             {

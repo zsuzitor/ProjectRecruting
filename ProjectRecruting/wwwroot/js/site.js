@@ -119,6 +119,8 @@ function getHtmlCompanyPage(json) {
     res += "<p>" + data.CanEdit + "</p>";
     
     res += "</div>";
+
+
     return res;
 }
 

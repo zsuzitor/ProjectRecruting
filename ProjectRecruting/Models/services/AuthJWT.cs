@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Primitives;
@@ -10,6 +11,7 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -83,7 +85,7 @@ namespace ProjectRecruting.Models.services
         //кортеж item1-основной токен item2-рефлеш
         public async static Task<Tuple<string, string>> Refresh(ApplicationDbContext db, string userId, string refreshToken)
         {
-            int hashToken = refreshToken.GetHashCode();
+            string hashToken = AuthJWT.GetHashRefreshToken(refreshToken);// refreshToken.GetHashCode();
             var user = await db.Users.FirstOrDefaultAsync(x1 => x1.Id == userId && x1.RefreshTokenHash == hashToken);
             if (user == null)
                 return null;
@@ -112,7 +114,7 @@ namespace ProjectRecruting.Models.services
 
         public async static Task<bool> DeleteRefreshTokenFromDb(ApplicationDbContext db, string userId, string refreshToken)
         {
-            int hashToken = refreshToken.GetHashCode();
+            string hashToken = AuthJWT.GetHashRefreshToken(refreshToken);//refreshToken.GetHashCode();
             var user = await db.Users.FirstOrDefaultAsync(x1 => x1.Id == userId && x1.RefreshTokenHash == hashToken);
             if (user == null)
                 return false;
@@ -163,5 +165,28 @@ namespace ProjectRecruting.Models.services
             }
             return null;
         }
-    }
+
+
+        public static string GetHashRefreshToken(string token)
+        {
+            
+            // generate a 128-bit salt using a secure PRNG
+            //byte[] salt = new byte[128 / 8];
+            //using (var rng = RandomNumberGenerator.Create())
+            //{
+            //    rng.GetBytes(salt);
+            //}
+            //Console.WriteLine($"Salt: {Convert.ToBase64String(salt)}");
+
+            // derive a 256-bit subkey (use HMACSHA1 with 10,000 iterations)
+            string hashed = Convert.ToBase64String(KeyDerivation.Pbkdf2(
+                password: token,
+                salt: new byte[0],
+                prf: KeyDerivationPrf.HMACSHA1,
+                iterationCount: 10000,
+                numBytesRequested: 256 / 8));
+            //Console.WriteLine($"Hashed: {hashed}");
+            return hashed;
+        }
+        }
 }

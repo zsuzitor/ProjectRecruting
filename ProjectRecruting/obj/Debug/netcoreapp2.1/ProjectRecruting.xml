@@ -92,15 +92,16 @@
             <response code="404">компания для изменения не найдена</response>
             <response code="527">параллельный запрос уже изменил данные</response>
         </member>
-        <member name="M:ProjectRecruting.Controllers.CompanyApiController.AddUserToCompany(System.Int32,System.String)">
+        <member name="M:ProjectRecruting.Controllers.CompanyApiController.AddUserToCompany(System.Int32,System.String,ProjectRecruting.Models.StatusInCompany)">
             <summary>
-            добавление управляющего в компанию
+            добавление управляющего в компанию(должна быть подана заявка)
             </summary>
             <param name="companyId">id компании в которую добавляес пользователя</param>
             <param name="newUserId">id пользователя которого добавляем</param>
             <returns></returns>
             <response code="401">. ошибка дешифрации токена, просрочен, изменен, не передан </response>
             <response code="404">компания не найдена</response>
+            <response code="527">параллельный запрос уже изменил данные</response>
         </member>
         <member name="M:ProjectRecruting.Controllers.CompanyApiController.DeleteUserFromCompany(System.Int32,System.String)">
             <summary>
@@ -109,8 +110,9 @@
             <param name="companyId">id компании из которой удаляем</param>
             <param name="newUserId">id пользователя которого удаляем</param>
             <returns></returns>
-             /// <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+             <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
             <response code="404">компания не найдена</response>
+            <response code="527">параллельный запрос уже изменил данные</response>
         </member>
         <member name="M:ProjectRecruting.Controllers.CompanyApiController.CreateProject(ProjectRecruting.Models.Domain.Project,System.String[],System.String[],Microsoft.AspNetCore.Http.IFormFile[])">
             <summary>
@@ -192,6 +194,19 @@
             <returns>true-существующая запись обновлена, false-добавлена новая, null-сейчас не обрабатывается-произошла ошибка</returns>
              <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
             <response code="404">проект не найден</response>
+            <response code="400">переданы не валидные данные(статус))</response>
+            <response code="406">почта не подтверждена</response>
+             <response code="527">параллельный запрос уже изменил данные</response>
+        </member>
+        <member name="M:ProjectRecruting.Controllers.UserApiController.ChangeStatusUserInCompany(System.Int32,ProjectRecruting.Models.StatusInCompany)">
+            <summary>
+            изменение(добавление, если ее нет) статуса пользователя в компании(для пользователя)
+            </summary>
+            <param name="companyId">id проекта</param>
+            <param name="newStatus">статус проекта, enum-StatusInProject</param>
+            <returns>true-существующая запись обновлена, false-добавлена новая, null-сейчас не обрабатывается-произошла ошибка</returns>
+             <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
+            <response code="404">компания не найдена</response>
             <response code="400">переданы не валидные данные(статус))</response>
             <response code="406">почта не подтверждена</response>
              <response code="527">параллельный запрос уже изменил данные</response>

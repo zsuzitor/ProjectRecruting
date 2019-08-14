@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+//using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Model;
+using ProjectRecruting.Models.services;
 
 namespace ProjectRecruting.Models.Domain
 {
@@ -26,8 +28,18 @@ namespace ProjectRecruting.Models.Domain
             Name = name;
         }
 
+        public void Validation(IInputValidator validator)
+        {
+            this.Name = validator.ValidateString(Name);
+         }
+        public static void Validation(IInputValidator validator, string[] mass)
+        {
+            validator.ValidateStringArray(mass);
+        }
+
         public async static Task<Town> GetByName(ApplicationDbContext db,string name)
         {
+            name = new ValidationInput().ValidateString(name);
             return await db.Towns.FirstOrDefaultAsync(x1 => x1.Name == name);
         }
 

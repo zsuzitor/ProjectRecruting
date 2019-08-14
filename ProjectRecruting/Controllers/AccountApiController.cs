@@ -113,6 +113,7 @@ namespace ProjectRecruting.Controllers
             }
 
             var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
+            user.Validation(new ValidationInput());
             var result = await _userManager.CreateAsync(user, model.Password);
             if (!result.Succeeded)
             {

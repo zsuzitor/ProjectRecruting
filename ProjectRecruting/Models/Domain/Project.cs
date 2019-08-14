@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using ProjectRecruting.Models.services;
 
 namespace ProjectRecruting.Models.Domain
 {
@@ -61,6 +62,12 @@ namespace ProjectRecruting.Models.Domain
             CompanyId = companyId;
         }
 
+        public void Validation(IInputValidator validator)
+        {
+            this.Name = validator.ValidateString(Name);
+            this.Description = validator.ValidateString(Description);
+        }
+
 
         //НЕ загрузит их в сущность(проекта), только добавит в бд
         public async Task<List<Image>> AddImagesToDbSystem(ApplicationDbContext db, IHostingEnvironment appEnvironment, IFormFile[] images)
@@ -84,7 +91,7 @@ namespace ProjectRecruting.Models.Domain
                 var fileName = ContentDispositionHeaderValue.Parse(i.ContentDisposition).FileName.Trim('"');
                 //получаем формат
                 var FileExtension = Path.GetExtension(fileName);
-                
+
                 Image img = new Image() { ProjectId = this.Id };
                 db.Images.Add(img);
                 await db.SaveChangesAsync();
@@ -93,7 +100,7 @@ namespace ProjectRecruting.Models.Domain
                 await db.SaveChangesAsync();
                 res.Add(img);
 
-                
+
                 using (var fileStream = new FileStream(appEnvironment.WebRootPath + shortPath, FileMode.Create))
                 {
                     await fileStream.WriteAsync(bytes);
@@ -103,7 +110,7 @@ namespace ProjectRecruting.Models.Domain
 
 
             ////Tuple<>
-            
+
             ////var imgs = Image.GetBytes(images);
             //if (images != null && images.Count > 0)
             //{
@@ -128,15 +135,15 @@ namespace ProjectRecruting.Models.Domain
             return res;
         }
 
-        public async  Task<string> GetCompanyName(ApplicationDbContext db)
+        public async Task<string> GetCompanyName(ApplicationDbContext db)
         {
             return (await Company.Get(db, this.CompanyId)).Name;
         }
 
 
 
-            //просто удаление, есть ли доступ у пользователя не проверяется
-            public async static Task<List<Image>> DeleteImagesFromDb(ApplicationDbContext db, int projectId, int[] imageIds)
+        //просто удаление, есть ли доступ у пользователя не проверяется
+        public async static Task<List<Image>> DeleteImagesFromDb(ApplicationDbContext db, int projectId, int[] imageIds)
         {
             if (imageIds == null || imageIds.Length == 0)
                 return new List<Image>();
@@ -147,7 +154,7 @@ namespace ProjectRecruting.Models.Domain
         }
 
 
-        public async static Task<List<int>> GetImagesId(ApplicationDbContext db,int projectId)
+        public async static Task<List<int>> GetImagesId(ApplicationDbContext db, int projectId)
         {
             return await db.Images.Where(x1 => x1.ProjectId == projectId).Select(x1 => x1.Id).ToListAsync();
         }
@@ -156,7 +163,7 @@ namespace ProjectRecruting.Models.Domain
         {
             return await db.Images.Where(x1 => x1.ProjectId == projectId).Select(x1 => new ImageShort(x1)).ToListAsync();
         }
-        
+
 
         public void ChangeData(string name, string description, bool? payment)
         {
@@ -224,13 +231,13 @@ namespace ProjectRecruting.Models.Domain
                 if (!await record.ChangeStatus(db, newStatus))
                     return null;
             }
-          
+
 
             return exists;
         }
 
 
-        public async static Task<List<CompetenceShort>> GetCompetences(ApplicationDbContext db,int projectId)
+        public async static Task<List<CompetenceShort>> GetCompetences(ApplicationDbContext db, int projectId)
         {
             return await db.CompetenceProjects.Where(x1 => x1.ProjectId == projectId).
                  Join(db.Competences, x1 => x1.CompetenceId, x2 => x2.Id, (x1, x2) => new CompetenceShort(x2)).ToListAsync();
@@ -239,7 +246,8 @@ namespace ProjectRecruting.Models.Domain
         //добавление без валидации
         public async Task<List<Competence>> AddCompetences(ApplicationDbContext db, string[] competences)
         {
-            var needAdded = await Competence.CreateInDbIfNeed(db,competences);
+            Competence.Validation(new ValidationInput(), competences);
+            var needAdded = await Competence.CreateInDbIfNeed(db, competences);
 
             List<CompetenceProject> forAddedRelation = new List<CompetenceProject>();
             needAdded.ForEach(x =>
@@ -289,7 +297,7 @@ namespace ProjectRecruting.Models.Domain
         public async static Task<List<ProjectShort>> GetShortsData(ApplicationDbContext db, List<int> projectIds)
         {
             var res = await db.Projects.Where(x1 => projectIds.Contains(x1.Id)).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
-            await ProjectShort.SetMainImages(db,res);
+            await ProjectShort.SetMainImages(db, res);
             return res;
         }
 
@@ -326,6 +334,12 @@ namespace ProjectRecruting.Models.Domain
             //    Join(db.Projects, x1 => x1.projId, x2 => x2.Id, (x1, x2) => new { proj = x2, count = x1.count }).
             //    OrderByDescending(x1 => x1.count).Select(x1 => x1.proj);
 
+            //var g1 = db.ProjectTowns.Where(x1 => townId == null ? true : (x1.TownId == townId)).ToList();
+            //var g2 = g1.GroupJoin(db.ProjectUsers, x1 => x1.ProjectId, x2 => x2.ProjectId, (x, y) => new { projTown = x, prUser = y }).
+            // SelectMany(x => x.prUser.DefaultIfEmpty(), (x, y) => new { x.projTown.ProjectId, y.Id });
+            //var g3=g2.GroupBy(x1 => x1.ProjectId).
+            // Join(db.Projects, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { proj = x2, count = x1.Count() }).OrderBy(x1 => x1.count).Select(x1 => x1.proj);
+
             return db.ProjectTowns.Where(x1 => townId == null ? true : (x1.TownId == townId)).
              GroupJoin(db.ProjectUsers, x1 => x1.ProjectId, x2 => x2.ProjectId, (x, y) => new { projTown = x, prUser = y }).
              SelectMany(x => x.prUser.DefaultIfEmpty(), (x, y) => new { x.projTown.ProjectId, y.Id }).GroupBy(x1 => x1.ProjectId).
@@ -335,7 +349,7 @@ namespace ProjectRecruting.Models.Domain
         //аналогично методу GetActualQueryEntity, но без закрытых проектов
         public static IQueryable<Project> GetActualQueryEntityWithStatus(ApplicationDbContext db, int? townId)
         {
-            return  Project.GetActualQueryEntity(db, townId).Where(x1=>x1.Status!=StatusProject.Closed&& x1.Status!=StatusProject.Complited);
+            return Project.GetActualQueryEntity(db, townId).Where(x1 => x1.Status != StatusProject.Closed && x1.Status != StatusProject.Complited);
         }
 
         //получаем полные данные, не учитывая статус проекта
@@ -361,13 +375,14 @@ namespace ProjectRecruting.Models.Domain
             return projs;
         }
 
-        public async static Task<List<ProjectShort>> GetByStartName(ApplicationDbContext db, int? townId, string userId,string name)
+        public async static Task<List<ProjectShort>> GetByStartName(ApplicationDbContext db, int? townId, string userId, string name)
         {
-            var projs = await Project.GetActualQueryEntity(db, townId).Where(x1=>x1.Name.Contains(name)).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            name = new ValidationInput().ValidateString(name);
+            var projs = await Project.GetActualQueryEntity(db, townId).Where(x1 => x1.Name.Contains(name)).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
             await ProjectShort.SetMainImages(db, projs);
             if (string.IsNullOrWhiteSpace(userId))
                 return projs;
-            await Project.SetUserStatusInProject(db,projs,userId);
+            await Project.SetUserStatusInProject(db, projs, userId);
 
             //var status = await db.ProjectUsers.Where(x1 => x1.UserId == userId && projs.FirstOrDefault(x2 => x2.ProjectId == x1.ProjectId) != null).ToListAsync();
             //status.ForEach(x1 =>
@@ -392,7 +407,7 @@ namespace ProjectRecruting.Models.Domain
         }
 
 
-            public async static Task<List<int>> SortByActual(ApplicationDbContext db)
+        public async static Task<List<int>> SortByActual(ApplicationDbContext db)
         {
             return await db.ProjectUsers.GroupBy(x1 => x1.ProjectId).OrderBy(x1 => x1.Count()).Select(x1 => x1.Key).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
         }
@@ -437,8 +452,8 @@ namespace ProjectRecruting.Models.Domain
 
         public async Task<bool> CheckAccess(ApplicationDbContext db, string userId)
         {
-            return await Company.CheckAccess(db,userId,this.CompanyId);
+            return await Company.CheckAccess(db, userId, this.CompanyId);
         }
 
-        }
+    }
 }

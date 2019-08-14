@@ -60,6 +60,14 @@ namespace ProjectRecruting.Models.Domain
 
         }
 
+        public void Validation(IInputValidator validator)
+        {
+            this.Name = validator.ValidateString(Name);
+            this.Number = validator.ValidateString(Number);
+            this.Description = validator.ValidateString(Description);
+            this.Email = validator.ValidateString(Email);
+        }
+
         public async static Task<Company> Get(ApplicationDbContext db, int id)
         {
             return await db.Companys.FirstOrDefaultAsync(x1 => x1.Id == id);

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models.Domain.ManyToMany;
+using ProjectRecruting.Models.services;
 using ProjectRecruting.Models.ShortModel;
 using System;
 using System.Collections.Generic;
@@ -19,7 +20,7 @@ namespace ProjectRecruting.Models.Domain
 
         public string ImagePath { get; set; }
 
-        public int? RefreshTokenHash { get; set; }
+        public string RefreshTokenHash { get; set; }//int?
 
         public List<CompanyUser> CompanyUsers { get; set; }
 
@@ -36,7 +37,16 @@ namespace ProjectRecruting.Models.Domain
             CompetenceUsers = new List<CompetenceUser>();
         }
 
+        public void Validation(IInputValidator validator)
+        {
+            this.Name = validator.ValidateString(Name);
+            this.SurName = validator.ValidateString(SurName);
+            this.Description = validator.ValidateString(Description);
 
+        }
+
+
+        //без валидации
         public async static Task<ApplicationUser> ChangeData(ApplicationDbContext db, UserManager<ApplicationUser> userManager, ApplicationUser newData)
         {
             var user = await ApplicationUser.Get(userManager, newData.Id);
@@ -73,7 +83,7 @@ namespace ProjectRecruting.Models.Domain
 
         public async Task SetRefreshToken(ApplicationDbContext db, string token)
         {
-            this.RefreshTokenHash = token.GetHashCode();
+            this.RefreshTokenHash = AuthJWT.GetHashRefreshToken(token);//token.GetHashCode();
             await db.SaveChangesAsync();
         }
 
@@ -112,8 +122,8 @@ namespace ProjectRecruting.Models.Domain
         {
             //var res = await db.Entry(this).Collection(x1 => x1.CompanyUsers).Query().FirstOrDefaultAsync(x1 => x1.CompanyId == companyId);
             //return res == null ? false : true;
-            var res = await db.CompanyUsers.FirstOrDefaultAsync(x1 => 
-            x1.CompanyId == companyId && x1.UserId == userId&&x1.Status== StatusInCompany.Moderator);
+            var res = await db.CompanyUsers.FirstOrDefaultAsync(x1 =>
+            x1.CompanyId == companyId && x1.UserId == userId && x1.Status == StatusInCompany.Moderator);
             return res == null ? false : true;
 
         }
@@ -122,22 +132,22 @@ namespace ProjectRecruting.Models.Domain
             if (project == null)
                 return false;
 
-            var moderatorProj=await db.Entry(project).Collection(x1 => x1.ProjectUsers).Query().
-                Where(x1=>x1.UserId==userId&&x1.Status== StatusInProject.Moderator).FirstOrDefaultAsync();
+            var moderatorProj = await db.Entry(project).Collection(x1 => x1.ProjectUsers).Query().
+                Where(x1 => x1.UserId == userId && x1.Status == StatusInProject.Moderator).FirstOrDefaultAsync();
 
             if (moderatorProj != null)
                 return true;
 
-            var res = await db.CompanyUsers.FirstOrDefaultAsync(x1 => 
+            var res = await db.CompanyUsers.FirstOrDefaultAsync(x1 =>
             x1.CompanyId == project.CompanyId && x1.UserId == userId && x1.Status == StatusInCompany.Moderator);
-            
+
             return res == null ? false : true;
 
         }
         public async static Task<Project> CheckAccessEditProject(ApplicationDbContext db, int projectId, string userId)
         {
             var project = await db.Projects.FirstOrDefaultAsync(x1 => x1.Id == projectId);
-            bool access=await ApplicationUser.CheckAccessEditProject(db,project,userId);
+            bool access = await ApplicationUser.CheckAccessEditProject(db, project, userId);
             if (access)
                 return project;
             return null;
@@ -153,18 +163,19 @@ namespace ProjectRecruting.Models.Domain
         //компании пользователя
         public async static Task<List<Company>> GetUserCompanys(ApplicationDbContext db, string userId)
         {
-            return await db.CompanyUsers.Where(x1 => x1.UserId == userId&&x1.Status==StatusInCompany.Moderator).
+            return await db.CompanyUsers.Where(x1 => x1.UserId == userId && x1.Status == StatusInCompany.Moderator).
                 Join(db.Companys, x1 => x1.CompanyId, x2 => x2.Id, (x1, x2) => x2).ToListAsync();
         }
 
         //проекты которые пользователь может редактировать, не по актуальности
         public async static Task<List<Project>> GetUserResponsibilityProjects(ApplicationDbContext db, string userId)
         {
-            var moderCompany= await db.CompanyUsers.Where(x1 => x1.UserId == userId&&x1.Status==StatusInCompany.Moderator).
+            var moderCompany = await db.CompanyUsers.Where(x1 => x1.UserId == userId && x1.Status == StatusInCompany.Moderator).
                 Join(db.Projects, x1 => x1.CompanyId, x2 => x2.CompanyId, (x1, x2) => x2).ToListAsync();
             var moderProj = await db.ProjectUsers.Where(x1 => x1.UserId == userId && x1.Status == StatusInProject.Moderator).
                 Join(db.Projects, x1 => x1.ProjectId, x2 => x2.Id, (x1, x2) => x2).ToListAsync();
-            moderProj.ForEach(x1=> {
+            moderProj.ForEach(x1 =>
+            {
                 if (moderCompany.FirstOrDefault(x2 => x2.Id == x1.Id) == null)
                     moderCompany.Add(x1);
             });

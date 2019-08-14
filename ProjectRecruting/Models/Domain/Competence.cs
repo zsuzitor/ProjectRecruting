@@ -29,6 +29,15 @@ namespace ProjectRecruting.Models.Domain
             Name = name;
         }
 
+        public void Validation(IInputValidator validator)
+        {
+            this.Name = validator.ValidateString(Name);
+        }
+        public static void Validation(IInputValidator validator,string[]mass)
+        {
+            validator.ValidateStringArray(mass);
+        }
+
         public async static Task<List<Competence>> CreateInDbIfNeed(ApplicationDbContext db, string[] competences)
         {
             //List<Competence> res = new List<Competence>();
