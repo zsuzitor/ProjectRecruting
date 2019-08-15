@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using ProjectRecruting.Data;
 using ProjectRecruting.Models.Domain.ManyToMany;
+using ProjectRecruting.Models.services;
 using ProjectRecruting.Models.ShortModel;
 using System;
 using System.Collections.Generic;
@@ -119,7 +120,7 @@ namespace ProjectRecruting.Models.Domain
         }
 
         //составляем запрос
-        public static IQueryable<Company> GetActualQueryEntity(ApplicationDbContext db, int? townId)
+        private static IQueryable<Company> GetActualQueryEntity(ApplicationDbContext db, int? townId)
         {
             //return db.ProjectUsers.GroupBy(x1 => x1.ProjectId).Select(x1 => new { x1.Key, Count = x1.Count() }).
             //    Join(db.ProjectTowns.Where(x1 => townId == null ? true : x1.TownId == townId), x1 => x1.Key, x2 => x2.ProjectId, (x1, x2) => x1).
@@ -153,14 +154,19 @@ namespace ProjectRecruting.Models.Domain
         //все проекты не зависимо от статуса
         public async static Task<List<ProjectShort>> GetProjectsByActual(ApplicationDbContext db, int companyId, int? townId)
         {
-            var res = await Project.GetActualQueryEntity(db, townId).Where(x1 => x1.CompanyId == companyId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            var res = await Project.GetActualQueryEntityWithCompany(db, townId,companyId);//GetActualQueryEntity(db, townId).Where(x1 => x1.CompanyId == companyId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
             await ProjectShort.SetMainImages(db, res);
             return res;
         }
 
         public async Task<bool?> RemoveUser(ApplicationDbContext db, string userId, StatusInCompany status)
         {
-
+            if (status == StatusInCompany.Moderator)
+            {
+                var countModer=await db.Entry(this).Collection(x1 => x1.CompanyUsers).Query().Where(x1=>x1.Status==status).CountAsync();
+                if (countModer < 2)
+                    return null;
+            }
             var userRelation = await db.Entry(this).Collection(x1 => x1.CompanyUsers).Query().FirstOrDefaultAsync(x1 => x1.UserId == userId && x1.Status == status);
             if (userRelation == null)
                 return false;
@@ -249,6 +255,19 @@ namespace ProjectRecruting.Models.Domain
         //    return true;
         //}
 
+        public async static Task<Company> Create(ApplicationDbContext db, IHostingEnvironment appEnvironment, string userId, Company company, IFormFile[] uploadedFile)
+        {
+            Company newCompany = new Company(company.Name, company.Description, company.Number, company.Email);
+            newCompany.Validation(new ValidationInput());
 
+            db.Companys.Add(newCompany);
+            await db.SaveChangesAsync();
+
+            await newCompany.SetImage(db, uploadedFile, appEnvironment);
+
+            db.CompanyUsers.Add(new Models.Domain.ManyToMany.CompanyUser(userId, newCompany.Id, StatusInCompany.Moderator));
+            await db.SaveChangesAsync();
+            return newCompany;
+        }
+        }
     }
-}

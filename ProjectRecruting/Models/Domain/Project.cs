@@ -268,7 +268,7 @@ namespace ProjectRecruting.Models.Domain
             await db.SaveChangesAsync();
         }
 
-        public IQueryable<string> GetStudentsQuery(ApplicationDbContext db, StatusInProject status)
+        private IQueryable<string> GetStudentsQuery(ApplicationDbContext db, StatusInProject status)
         {
             //List<UserShort> res = new List<UserShort>();
             return db.Entry(this).Collection(x1 => x1.ProjectUsers).Query().Where(x1 => x1.Status == status).Select(x1 => x1.UserId);
@@ -326,7 +326,7 @@ namespace ProjectRecruting.Models.Domain
 
 
         //составляем запрос, данные не учитывая статус проекта
-        public static IQueryable<Project> GetActualQueryEntity(ApplicationDbContext db, int? townId)//#TODO можно вынести db.Projects в параметры а этот метод сделать оболочкой, если нужно будет
+        private static IQueryable<Project> GetActualQueryEntity(ApplicationDbContext db, int? townId)//#TODO можно вынести db.Projects в параметры а этот метод сделать оболочкой, если нужно будет
         {
             //return db.ProjectTowns.Where(x1 => townId == null ? true : (x1.TownId == townId)).
             //    GroupJoin(db.ProjectUsers, x1 => x1.ProjectId, x2 => x2.ProjectId, (x, y) => new { proj = x, prUser = y }).
@@ -347,9 +347,14 @@ namespace ProjectRecruting.Models.Domain
 
         }
         //аналогично методу GetActualQueryEntity, но без закрытых проектов
-        public static IQueryable<Project> GetActualQueryEntityWithStatus(ApplicationDbContext db, int? townId)
+        private static IQueryable<Project> GetActualQueryEntityWithStatus(ApplicationDbContext db, int? townId)
         {
             return Project.GetActualQueryEntity(db, townId).Where(x1 => x1.Status != StatusProject.Closed && x1.Status != StatusProject.Complited);
+        }
+
+        public async static Task<List<ProjectShort>> GetActualQueryEntityWithCompany(ApplicationDbContext db, int? townId,int companyId)
+        {
+            return await Project.GetActualQueryEntity(db, townId).Where(x1 => x1.CompanyId == companyId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
         }
 
         //получаем полные данные, не учитывая статус проекта
@@ -455,5 +460,38 @@ namespace ProjectRecruting.Models.Domain
             return await Company.CheckAccess(db, userId, this.CompanyId);
         }
 
-    }
+
+        public async  Task<bool?> Update(ApplicationDbContext db, IHostingEnvironment appEnvironment, Project project, string[] competences, 
+            int[] competenceIds, IFormFile[] uploadedFile, int[] deleteImages)
+        {
+            using (var tranzaction = db.Database.BeginTransaction())
+            {
+                try
+                {
+
+                    this.ChangeData(project.Name, project.Description, project.Payment);
+                    await db.SaveChangesAsync();
+                    await this.AddCompetences(db, competences);
+                    await this.DeleteCompetences(db, competenceIds);
+                    await Project.DeleteImagesFromDb(db, this.Id, deleteImages);
+                    tranzaction.Commit();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    tranzaction.Rollback();
+                    //Response.StatusCode = 527;
+                    return null;
+                }
+                catch
+                {
+                    tranzaction.Rollback();
+                    return false;
+                }
+            }
+
+            await this.AddImagesToDbSystem(db, appEnvironment, uploadedFile);
+            return true;
+        }
+
+        }
 }

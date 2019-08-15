@@ -77,7 +77,7 @@ namespace ProjectRecruting.Models.Domain
         }
 
         //составляем запрос
-        public static IQueryable<Competence> GetActualQueryEntityInTown(ApplicationDbContext db, int? townId)
+        private static IQueryable<Competence> GetActualQueryEntityInTown(ApplicationDbContext db, int? townId)
         {
             return db.ProjectTowns.Where(x1 => townId==null?true: x1.TownId == townId).Join(db.CompetenceProjects, x1 => x1.ProjectId, x2 => x2.ProjectId, (x1, x2) => x2.CompetenceId).
                  GroupBy(x1 => x1)

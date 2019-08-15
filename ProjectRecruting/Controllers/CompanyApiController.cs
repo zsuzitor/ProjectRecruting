@@ -57,16 +57,19 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 400;
                 return;
             }
-            Company newCompany = new Company(company.Name, company.Description, company.Number, company.Email);
-            newCompany.Validation(new ValidationInput());
 
-            _db.Companys.Add(newCompany);
-            await _db.SaveChangesAsync();
+            var newCompany = await Company.Create(_db, _appEnvironment, userId, company, uploadedFile);
 
-            await newCompany.SetImage(_db, uploadedFile, _appEnvironment);
+            //Company newCompany = new Company(company.Name, company.Description, company.Number, company.Email);
+            //newCompany.Validation(new ValidationInput());
 
-            _db.CompanyUsers.Add(new Models.Domain.ManyToMany.CompanyUser(userId, newCompany.Id, StatusInCompany.Moderator));
-            await _db.SaveChangesAsync();
+            //_db.Companys.Add(newCompany);
+            //await _db.SaveChangesAsync();
+
+            //await newCompany.SetImage(_db, uploadedFile, _appEnvironment);
+
+            //_db.CompanyUsers.Add(new Models.Domain.ManyToMany.CompanyUser(userId, newCompany.Id, StatusInCompany.Moderator));
+            //await _db.SaveChangesAsync();
             //return newCompany;
             Response.ContentType = "application/json";
 
@@ -127,7 +130,7 @@ namespace ProjectRecruting.Controllers
                 await _db.SaveChangesAsync();
                 await oldCompany.SetImage(_db, uploadedFile, _appEnvironment);
             }
-            catch (DbUpdateConcurrencyException ex)
+            catch (DbUpdateConcurrencyException)
             {
                 Response.StatusCode = 527;
                 return null;
@@ -142,6 +145,7 @@ namespace ProjectRecruting.Controllers
         /// </summary>
         /// <param name="companyId">id компании в которую добавляес пользователя</param>
         /// <param name="newUserId">id пользователя которого добавляем</param>
+        /// <param name="newStatus">новый статус</param>
         /// <returns></returns>
         /// <response code="401">. ошибка дешифрации токена, просрочен, изменен, не передан </response>
         /// <response code="404">компания не найдена</response>
@@ -164,7 +168,17 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return null;
             }
-            var res = await company.AddHeadUser(_db, newUserId);
+            bool? res = null;
+            if(newStatus== StatusInCompany.Moderator)
+            {
+                res= await company.AddHeadUser(_db, newUserId);
+            }
+            if (newStatus == StatusInCompany.Employee)
+            {
+                //#TODO
+                //res = await company.AddHeadUser(_db, newUserId);
+            }
+
             if (res == null)
             {
                 Response.StatusCode = 527;
@@ -181,6 +195,7 @@ namespace ProjectRecruting.Controllers
         /// </summary>
         /// <param name="companyId">id компании из которой удаляем</param>
         /// <param name="newUserId">id пользователя которого удаляем</param>
+        /// <param name="status">статус пользователя которого удаляем</param>
         /// <returns></returns>
         ///  <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
         /// <response code="404">компания не найдена</response>
@@ -189,7 +204,7 @@ namespace ProjectRecruting.Controllers
         [ProducesResponseType(404)]
         [ProducesResponseType(527)]
         [HttpPost("delete-user-from-company")]
-        public async Task<bool?> DeleteUserFromCompany([FromForm]int companyId, [FromForm] string newUserId)
+        public async Task<bool?> DeleteUserFromCompany([FromForm]int companyId, [FromForm] string newUserId, StatusInCompany status)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int statusId);
             if (statusId != 0 || userId == null)
@@ -203,7 +218,7 @@ namespace ProjectRecruting.Controllers
                 Response.StatusCode = 404;
                 return null;
             }
-            var res = await company.RemoveUser(_db, newUserId, StatusInCompany.Moderator);
+            var res = await company.RemoveUser(_db, newUserId, status);// StatusInCompany.Moderator);
             if (res == null)
             {
                 Response.StatusCode = 527;
@@ -316,32 +331,39 @@ namespace ProjectRecruting.Controllers
                 return false;
             }
 
-            using (var tranzaction = _db.Database.BeginTransaction())
+            var updt = await oldProj.Update(_db, _appEnvironment, project, competences, competenceIds, uploadedFile, deleteImages);
+            if (updt == null)
             {
-                try
-                {
-
-                    oldProj.ChangeData(project.Name, project.Description, project.Payment);
-                    await _db.SaveChangesAsync();
-                    await oldProj.AddCompetences(_db, competences);
-                    await oldProj.DeleteCompetences(_db, competenceIds);
-                    await Project.DeleteImagesFromDb(_db, oldProj.Id, deleteImages);
-                    tranzaction.Commit();
-                }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    tranzaction.Rollback();
-                    Response.StatusCode = 527;
-                    return false;
-                }
-                catch
-                {
-                    tranzaction.Rollback();
-                    return false;
-                }
+                Response.StatusCode = 527;
+                return false;
             }
 
-            await oldProj.AddImagesToDbSystem(_db, _appEnvironment, uploadedFile);
+            //using (var tranzaction = _db.Database.BeginTransaction())
+            //{
+            //    try
+            //    {
+
+            //        oldProj.ChangeData(project.Name, project.Description, project.Payment);
+            //        await _db.SaveChangesAsync();
+            //        await oldProj.AddCompetences(_db, competences);
+            //        await oldProj.DeleteCompetences(_db, competenceIds);
+            //        await Project.DeleteImagesFromDb(_db, oldProj.Id, deleteImages);
+            //        tranzaction.Commit();
+            //    }
+            //    catch (DbUpdateConcurrencyException ex)
+            //    {
+            //        tranzaction.Rollback();
+            //        Response.StatusCode = 527;
+            //        return false;
+            //    }
+            //    catch
+            //    {
+            //        tranzaction.Rollback();
+            //        return false;
+            //    }
+            //}
+
+            //await oldProj.AddImagesToDbSystem(_db, _appEnvironment, uploadedFile);
 
             return true;
 
@@ -379,7 +401,7 @@ namespace ProjectRecruting.Controllers
             {
                 await proj.SetStatus(_db, newStatus);
             }
-            catch (DbUpdateConcurrencyException ex)
+            catch (DbUpdateConcurrencyException)
             {
                 Response.StatusCode = 527;
                 return false;
@@ -401,10 +423,10 @@ namespace ProjectRecruting.Controllers
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
         [ProducesResponseType(527)]
-        [HttpPost("change-status-student")]
-        public async Task<bool> ChangeStatusStudent([FromForm]int projectId, [FromForm]string studentId, [FromForm]StatusInProject newStatus)
+        [HttpPost("change-status-user-project")]
+        public async Task<bool> ChangeStatusUserProject([FromForm]int projectId, [FromForm]string studentId, [FromForm]StatusInProject newStatus)
         {
-            if (newStatus != StatusInProject.InProccessing && newStatus != StatusInProject.Canceled && newStatus != StatusInProject.Approved)
+            if (newStatus != StatusInProject.InProccessing && newStatus != StatusInProject.Canceled && newStatus != StatusInProject.Approved && newStatus != StatusInProject.Moderator)
             {
                 Response.StatusCode = 400;
                 return false;
