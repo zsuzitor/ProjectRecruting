@@ -98,17 +98,19 @@
             </summary>
             <param name="companyId">id компании в которую добавляес пользователя</param>
             <param name="newUserId">id пользователя которого добавляем</param>
+            <param name="newStatus">новый статус</param>
             <returns></returns>
             <response code="401">. ошибка дешифрации токена, просрочен, изменен, не передан </response>
             <response code="404">компания не найдена</response>
             <response code="527">параллельный запрос уже изменил данные</response>
         </member>
-        <member name="M:ProjectRecruting.Controllers.CompanyApiController.DeleteUserFromCompany(System.Int32,System.String)">
+        <member name="M:ProjectRecruting.Controllers.CompanyApiController.DeleteUserFromCompany(System.Int32,System.String,ProjectRecruting.Models.StatusInCompany)">
             <summary>
              удалить управляющего из компании
             </summary>
             <param name="companyId">id компании из которой удаляем</param>
             <param name="newUserId">id пользователя которого удаляем</param>
+            <param name="status">статус пользователя которого удаляем</param>
             <returns></returns>
              <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
             <response code="404">компания не найдена</response>
@@ -152,7 +154,7 @@
             <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
             <response code="404">проект не найден</response>
         </member>
-        <member name="M:ProjectRecruting.Controllers.CompanyApiController.ChangeStatusStudent(System.Int32,System.String,ProjectRecruting.Models.StatusInProject)">
+        <member name="M:ProjectRecruting.Controllers.CompanyApiController.ChangeStatusUserProject(System.Int32,System.String,ProjectRecruting.Models.StatusInProject)">
             <summary>
             изменение статуса студента в проекте(для управляющего проектом)
             </summary>
@@ -211,11 +213,12 @@
             <response code="406">почта не подтверждена</response>
              <response code="527">параллельный запрос уже изменил данные</response>
         </member>
-        <member name="M:ProjectRecruting.Controllers.UserApiController.GetActualProject(System.String)">
+        <member name="M:ProjectRecruting.Controllers.UserApiController.GetActualProject(System.String,System.Int32)">
             <summary>
             просмотреть список актуальных проектов для города
             </summary>
             <param name="town">название города</param>
+            <param name="lastId">id последней загруженной записи</param>
             <returns></returns>
         </member>
         <member name="M:ProjectRecruting.Controllers.UserApiController.GetActualCompetences(System.String)">
@@ -225,19 +228,21 @@
             <param name="town">название города</param>
             <returns></returns>
         </member>
-        <member name="M:ProjectRecruting.Controllers.UserApiController.GetProjectsCompany(System.Int32,System.Nullable{System.Int32})">
+        <member name="M:ProjectRecruting.Controllers.UserApiController.GetProjectsCompany(System.Int32,System.Nullable{System.Int32},System.Int32)">
             <summary>
             получить проекты компании
             </summary>
             <param name="companyId">id компании</param>
             <param name="townId">id города</param>
+            <param name="lastId">id последней загруженной записи</param>
             <returns></returns>
         </member>
-        <member name="M:ProjectRecruting.Controllers.UserApiController.GetActualCompanys(System.Nullable{System.Int32})">
+        <member name="M:ProjectRecruting.Controllers.UserApiController.GetActualCompanys(System.Nullable{System.Int32},System.Int32)">
             <summary>
             получить список компаний
             </summary>
             <param name="townId">id города</param>
+            <param name="lastId">id последней загруженной записи</param>
             <returns></returns>
             
         </member>
@@ -263,12 +268,13 @@
             <returns></returns>
              <response code="401"> ошибка дешифрации токена, просрочен, изменен, не передан </response>
         </member>
-        <member name="M:ProjectRecruting.Controllers.UserApiController.GetProjectByContainsName(System.String,System.Nullable{System.Int32})">
+        <member name="M:ProjectRecruting.Controllers.UserApiController.GetProjectByContainsName(System.String,System.Nullable{System.Int32},System.Int32)">
             <summary>
             получить список актуальных проектов название которых содержит  projectName
             </summary>
             <param name="projectName">строка вхождение которой ищем</param>
             <param name="townId">id города</param>
+            <param name="lastId">id последней загруженной записи</param>
             <returns></returns>
         </member>
         <member name="M:ProjectRecruting.Controllers.UserApiController.GetProject(System.Nullable{System.Int32})">

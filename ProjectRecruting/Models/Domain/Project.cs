@@ -326,7 +326,7 @@ namespace ProjectRecruting.Models.Domain
 
 
         //составляем запрос, данные не учитывая статус проекта
-        private static IQueryable<Project> GetActualQueryEntity(ApplicationDbContext db, int? townId)//#TODO можно вынести db.Projects в параметры а этот метод сделать оболочкой, если нужно будет
+        private static IQueryable<Project> GetActualQueryEntity(ApplicationDbContext db, int? townId,int lastId=0)//#TODO можно вынести db.Projects в параметры а этот метод сделать оболочкой, если нужно будет
         {
             //return db.ProjectTowns.Where(x1 => townId == null ? true : (x1.TownId == townId)).
             //    GroupJoin(db.ProjectUsers, x1 => x1.ProjectId, x2 => x2.ProjectId, (x, y) => new { proj = x, prUser = y }).
@@ -343,29 +343,30 @@ namespace ProjectRecruting.Models.Domain
             return db.ProjectTowns.Where(x1 => townId == null ? true : (x1.TownId == townId)).
              GroupJoin(db.ProjectUsers, x1 => x1.ProjectId, x2 => x2.ProjectId, (x, y) => new { projTown = x, prUser = y }).
              SelectMany(x => x.prUser.DefaultIfEmpty(), (x, y) => new { x.projTown.ProjectId, y.Id }).GroupBy(x1 => x1.ProjectId).
-             Join(db.Projects, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { proj = x2, count = x1.Count() }).OrderBy(x1 => x1.count).Select(x1 => x1.proj);
+             Join(db.Projects, x1 => x1.Key, x2 => x2.Id, (x1, x2) => new { proj = x2, count = x1.Count() }).OrderBy(x1 => x1.count).
+             SkipWhile(x1 => lastId > 0 ? (x1.proj.Id != lastId) : false).Skip(lastId > 0 ? 1 : 0).Take(Constants.CountForLoad).Select(x1 => x1.proj);
 
         }
         //аналогично методу GetActualQueryEntity, но без закрытых проектов
-        private static IQueryable<Project> GetActualQueryEntityWithStatus(ApplicationDbContext db, int? townId)
+        private static IQueryable<Project> GetActualQueryEntityWithStatus(ApplicationDbContext db, int? townId, int lastId)
         {
-            return Project.GetActualQueryEntity(db, townId).Where(x1 => x1.Status != StatusProject.Closed && x1.Status != StatusProject.Complited);
+            return Project.GetActualQueryEntity(db, townId,lastId).Where(x1 => x1.Status != StatusProject.Closed && x1.Status != StatusProject.Complited);
         }
 
-        public async static Task<List<ProjectShort>> GetActualQueryEntityWithCompany(ApplicationDbContext db, int? townId,int companyId)
+        public async static Task<List<ProjectShort>> GetActualQueryEntityWithCompany(ApplicationDbContext db, int? townId,int companyId, int lastId=0)
         {
-            return await Project.GetActualQueryEntity(db, townId).Where(x1 => x1.CompanyId == companyId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            return await Project.GetActualQueryEntity(db, townId,lastId).Where(x1 => x1.CompanyId == companyId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
         }
 
         //получаем полные данные, не учитывая статус проекта
-        public async static Task<List<Project>> GetActualEntity(ApplicationDbContext db, int? townId)
+        public async static Task<List<Project>> GetActualEntity(ApplicationDbContext db, int? townId, int lastId)
         {
-            return await Project.GetActualQueryEntity(db, townId).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
+            return await Project.GetActualQueryEntity(db, townId,lastId).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
         }
         //получаем сокращенные данные, не учитывая статус проекта
-        public async static Task<List<ProjectShort>> GetActualShortEntityWithStatus(ApplicationDbContext db, int? townId, string userId)
+        public async static Task<List<ProjectShort>> GetActualShortEntityWithStatus(ApplicationDbContext db, int? townId, string userId, int lastId)
         {
-            var projs = await Project.GetActualQueryEntityWithStatus(db, townId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            var projs = await Project.GetActualQueryEntityWithStatus(db, townId,lastId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
             await ProjectShort.SetMainImages(db, projs);
             if (string.IsNullOrWhiteSpace(userId))
                 return projs;
@@ -380,10 +381,10 @@ namespace ProjectRecruting.Models.Domain
             return projs;
         }
 
-        public async static Task<List<ProjectShort>> GetByStartName(ApplicationDbContext db, int? townId, string userId, string name)
+        public async static Task<List<ProjectShort>> GetByStartName(ApplicationDbContext db, int? townId, string userId, string name, int lastId)
         {
             name = new ValidationInput().ValidateString(name);
-            var projs = await Project.GetActualQueryEntity(db, townId).Where(x1 => x1.Name.Contains(name)).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            var projs = await Project.GetActualQueryEntity(db, townId,lastId).Where(x1 => x1.Name.Contains(name)).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
             await ProjectShort.SetMainImages(db, projs);
             if (string.IsNullOrWhiteSpace(userId))
                 return projs;

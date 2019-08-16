@@ -120,7 +120,7 @@ namespace ProjectRecruting.Models.Domain
         }
 
         //составляем запрос
-        private static IQueryable<Company> GetActualQueryEntity(ApplicationDbContext db, int? townId)
+        private static IQueryable<Company> GetActualQueryEntity(ApplicationDbContext db, int? townId,int lastId)
         {
             //return db.ProjectUsers.GroupBy(x1 => x1.ProjectId).Select(x1 => new { x1.Key, Count = x1.Count() }).
             //    Join(db.ProjectTowns.Where(x1 => townId == null ? true : x1.TownId == townId), x1 => x1.Key, x2 => x2.ProjectId, (x1, x2) => x1).
@@ -142,19 +142,20 @@ namespace ProjectRecruting.Models.Domain
               GroupBy(x1 => x1.companyId).Select(x1 => new { x1.Key, count = x1.Sum(x2 => x2.count) });//.ToList();
             return db.Companys.GroupJoin(idWithCount, x1 => x1.Id, x2 => x2.Key, (x, y) => new { company = x, lists = y }).
                            SelectMany(x => x.lists.DefaultIfEmpty(), (x, y) => new { x.company, count = (y == null ? 0 : y.count) }).
-                           OrderByDescending(x1 => x1.count).Select(x1 => x1.company);
+                           OrderByDescending(x1 => x1.count).Select(x1 => x1.company).SkipWhile(x1 => lastId > 0 ? (x1.Id != lastId) : false).
+                           Skip(lastId > 0 ? 1 : 0).Take(Constants.CountForLoad);
         }
 
         //получаем полные данные
-        public async static Task<List<CompanyShort>> GetActualEntity(ApplicationDbContext db, int? townId)
+        public async static Task<List<CompanyShort>> GetActualEntity(ApplicationDbContext db, int? townId, int lastId)
         {
-            return await Company.GetActualQueryEntity(db, townId).Select(x1 => new CompanyShort(x1)).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
+            return await Company.GetActualQueryEntity(db, townId,lastId).Select(x1 => new CompanyShort(x1)).ToListAsync();//Select(x1=>new { x1.Key,Count= x1.Count() })
         }
 
         //все проекты не зависимо от статуса
-        public async static Task<List<ProjectShort>> GetProjectsByActual(ApplicationDbContext db, int companyId, int? townId)
+        public async static Task<List<ProjectShort>> GetProjectsByActual(ApplicationDbContext db, int companyId, int? townId, int lastId)
         {
-            var res = await Project.GetActualQueryEntityWithCompany(db, townId,companyId);//GetActualQueryEntity(db, townId).Where(x1 => x1.CompanyId == companyId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
+            var res = await Project.GetActualQueryEntityWithCompany(db, townId,companyId,lastId);//GetActualQueryEntity(db, townId).Where(x1 => x1.CompanyId == companyId).Select(x1 => new ProjectShort(x1.Name, x1.Id)).ToListAsync();
             await ProjectShort.SetMainImages(db, res);
             return res;
         }

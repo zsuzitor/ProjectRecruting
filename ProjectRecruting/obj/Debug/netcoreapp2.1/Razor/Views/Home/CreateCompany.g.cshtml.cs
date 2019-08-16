@@ -60,7 +60,7 @@ using ProjectRecruting.Models;
             WriteLiteral("\r\n    ");
             EndContext();
             BeginContext(34, 440, false);
-            __tagHelperExecutionContext = __tagHelperScopeManager.Begin("form", global::Microsoft.AspNetCore.Razor.TagHelpers.TagMode.StartTagAndEndTag, "f4433fe25f894eb68dc7254f3cf32339", async() => {
+            __tagHelperExecutionContext = __tagHelperScopeManager.Begin("form", global::Microsoft.AspNetCore.Razor.TagHelpers.TagMode.StartTagAndEndTag, "64251f2d287b4b81bf2463f7fc2f9835", async() => {
                 BeginContext(40, 427, true);
                 WriteLiteral(@"
         <input id=""newCompanyName"" name=""Name"" type=""text"" />

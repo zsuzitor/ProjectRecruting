@@ -181,9 +181,10 @@ namespace ProjectRecruting.Controllers
         /// просмотреть список актуальных проектов для города
         /// </summary>
         /// <param name="town">название города</param>
+        /// <param name="lastId">id последней загруженной записи</param>
         /// <returns></returns>
         [HttpGet("get-actual-project")]
-        public async Task GetActualProject(string town)//<List<ProjectShort>>
+        public async Task GetActualProject(string town, int lastId=0)//<List<ProjectShort>>
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
             if (status != 0 || userId == null)
@@ -201,7 +202,7 @@ namespace ProjectRecruting.Controllers
                     return;// new List<ProjectShort>();
                 townId = townDb.Id;
             }
-            var res = await Project.GetActualShortEntityWithStatus(_db, townId, userId);
+            var res = await Project.GetActualShortEntityWithStatus(_db, townId, userId,lastId);
             await ProjectShort.SetMainImages(_db, res);
             //return res;
             Response.ContentType = "application/json";
@@ -251,11 +252,12 @@ namespace ProjectRecruting.Controllers
         /// </summary>
         /// <param name="companyId">id компании</param>
         /// <param name="townId">id города</param>
+        /// <param name="lastId">id последней загруженной записи</param>
         /// <returns></returns>
         [HttpGet("get-projects-company")]
-        public async Task GetProjectsCompany(int companyId, int? townId)
+        public async Task GetProjectsCompany(int companyId, int? townId, int lastId=0)
         {
-            var res = await Company.GetProjectsByActual(_db, companyId, townId);
+            var res = await Company.GetProjectsByActual(_db, companyId, townId,lastId);
             Response.ContentType = "application/json";
             await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
 
@@ -266,12 +268,13 @@ namespace ProjectRecruting.Controllers
         /// получить список компаний
         /// </summary>
         /// <param name="townId">id города</param>
+        /// <param name="lastId">id последней загруженной записи</param>
         /// <returns></returns>
         /// 
         [HttpGet("get-actual-companys")]
-        public async Task GetActualCompanys(int? townId)
+        public async Task GetActualCompanys(int? townId, int lastId = 0)
         {
-            var res = await Company.GetActualEntity(_db, townId);
+            var res = await Company.GetActualEntity(_db, townId,lastId);
 
 
             Response.ContentType = "application/json";
@@ -357,12 +360,17 @@ namespace ProjectRecruting.Controllers
         /// </summary>
         /// <param name="projectName">строка вхождение которой ищем</param>
         /// <param name="townId">id города</param>
+        /// <param name="lastId">id последней загруженной записи</param>
         /// <returns></returns>
         [HttpGet("get-project-by-contains-name")]
-        public async Task GetProjectByContainsName(string projectName, int? townId)
+        public async Task GetProjectByContainsName(string projectName, int? townId, int lastId = 0)
         {
             string userId = AuthJWT.GetCurrentId(HttpContext, out int status);
-            var res = await Project.GetByStartName(_db, townId, userId, projectName);
+            if (status != 0 || userId == null)
+            {
+                userId = null;
+            }
+            var res = await Project.GetByStartName(_db, townId, userId, projectName, lastId);
             Response.ContentType = "application/json";
             await Response.WriteAsync(JsonConvert.SerializeObject(res, new JsonSerializerSettings { Formatting = Formatting.Indented }));
         }
